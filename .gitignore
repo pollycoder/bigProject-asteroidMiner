@@ -1,0 +1,5 @@
+.DS_Store
+*.asv
+*.fig
+astrodynamics-utils
+numerical_analysis
