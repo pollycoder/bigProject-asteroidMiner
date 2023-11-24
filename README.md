@@ -1,2 +1,19 @@
-# bigProject-planetMiner
-Big project for Astrodynamics course.
+# Big Project for Astrodynamics
+
+### 1. 题目信息解读
+
+#### (1) 优化指标和优化变量
+
+- 优化指标：终端干重相反数$-m_f$
+
+- 优化变量：
+
+  手动调整：关键节点序列（总飞行策略）
+
+  优化器调整：各关键节点的时间$t_i$
+
+生成步骤：先生成关键节点序列（主要是确定借力的节点），然后优化时间序列
+
+#### (2) 约束
+
+- 
