@@ -49,8 +49,8 @@ hpmin = 300;
 % in new unit system.
 lUnit = 1 / coeEarth0(1);                                   % Length (AU)
 tUnit = 1 / (2 * pi * sqrt(coeEarth0(1) ^ 3 / muSun));      % Time (y)
-vUnit = lUnit / tUnit;                                      % Velocity (AU/d)
-muUnit = lUnit ^ 3 / tUnit ^ 2;                             % Mu (AU^3/d^2)
+vUnit = lUnit / tUnit;                                      % Velocity (AU/y)
+muUnit = lUnit ^ 3 / tUnit ^ 2;                             % Mu (AU^3/y^2)
 coeUnit = [lUnit, ones(1, 5)];                              % Change the unit of orbit elements quickly
 
 % New unit - They will be set as global constant
@@ -93,13 +93,13 @@ dv1 = norm(dv1New) / vUnit;                                 % Unit transform to 
 [mTotalt0, dmt0] = impulseFuel(mTotal0, dv1, Isp);          % Mass change (t=t0)
 mFuel = mFuel - dmt0;                                       % Fuel cost (t=t0)
 
-%{
+
 if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
     %warning("脉冲1，燃料耗尽。Penalty.")
     J = penalty;                                            % J < 0, therefore penalty > 0
     return
 end
-%}
+
 
 % GA-1: SOI (t1)
 % vt11 would become the velocity for GA
@@ -125,13 +125,13 @@ dv3 = norm(dv3New) / vUnit;                                 % Unit transform to 
 [mTotalt21, dmt2] = impulseFuel(mTotalt1, dv3, Isp);        % Mass change (t=t2)
 mFuel = mFuel - dmt2;                                       % Fuel cost (t=t2)
 
-%{
+
 if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
     %warning("脉冲2,3，燃料耗尽。Penalty.");
     J = penalty;                                            % J < 0, therefore penalty > 0
     return
 end
-%}
+
 
 % Sampling (t2)
 mTotalt22 = mTotalt21 + X(11);                              % Add sample mass
@@ -152,13 +152,13 @@ dv4 = norm(dv4New) / vUnit;                                 % Unit transform to 
 [mTotalt3, dmt3] = impulseFuel(mTotalt22, dv4, Isp);        % Mass change (t=t3)
 mFuel = mFuel - dmt3;                                       % Fuel cost (t=t3)
 
-%{
+
 if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
     %warning("脉冲4,燃料耗尽。Penalty.");
     J = penalty;                                            % J < 0, therefore penalty > 0
     return
 end
-%}
+
 
 % GA-1: SOI (t1)
 % vt11 would become the velocity for GA
@@ -178,26 +178,26 @@ dv5 = norm(dv5New) / vUnit;                                 % Unit transform to 
 [mTotalt4, dmt4] = impulseFuel(mTotalt3, dv5, Isp);         % Mass change (t=t4)
 mFuel = mFuel - dmt4;
 
-%{
+
 if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
     %warning("脉冲5,燃料耗尽。Penalty.");
     J = penalty;                                            % J < 0, therefore penalty > 0
     return
 end
-%}
+
 
 dv6New = vEt5New - vt5New;                                  % 6th impulse (t=t5)
 dv6 = norm(dv6New) / vUnit;                                 % Unit transform to fit the impulse solver
 [mTotalt5, dmt5] = impulseFuel(mTotalt4, dv6, Isp);         % Mass change (t=t5)
 mFuel = mFuel - dmt5;
 
-%{
+
 if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
     %warning("脉冲6,燃料耗尽。Penalty.");
     J = penalty;                                            % J < 0, therefore penalty > 0
     return
 end
-%}
 
-J = dv1 + dv2 + dv3 + dv4 + dv5 + dv6;
+
+J = -X(11);
 end

@@ -48,10 +48,15 @@ tTotalUpperNew = tTotalUpper * tUnit;
 lb = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]';
 ub = [5, 15, 15, 15, 15, 15, 10, 10, 2 * pi, 2 * pi, 1e3]';
 
-options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 'MaxIterations', 1000);
+options = optimoptions("particleswarm", "SwarmSize", 100000, 'UseParallel', true, 'MaxIterations', 1000, "Display","iter");
 [init_X, init_result, exitflag] = particleswarm(@monoGA_obj, 11, lb, ub, options);
 
+%%
+options = optimset('Display','iter', 'MaxIter', 1000);
+[X, result] = fminsearch(@monoGA_obj, init_X, options);
 
+%%
+J = monoGA_obj(X);
 
 
 
