@@ -17,14 +17,14 @@ day = 86400;
 g0 = 9.806650000000000;
 Isp = 3000;
 RMars = 3.389920000000000e+03;
-rpMin = 300;
+rpMin = 300 + RMars;
 
 %% Unit transform
 % To make the calculation faster and preciser.
 % From now on, all the calculation will be completed 
 % in new unit system.
 lUnit = 1 / coeEarth0(1);                                   % Length (AU)
-tUnit = 1/ (2 * pi * sqrt(coeEarth0(1) ^ 3 / muSun));       % Time (y)
+tUnit = 1 / (2 * pi * sqrt(coeEarth0(1) ^ 3 / muSun));       % Time (y)
 vUnit = lUnit / tUnit;                                      % Velocity (AU/d)
 muUnit = lUnit ^ 3 / tUnit ^ 2;                             % Mu (AU^3/d^2)
 coeUnit = [lUnit, ones(1, 5)];                              % Change the unit of orbit elements quickly
@@ -37,16 +37,18 @@ coeEarth0New = coeEarth0 .* coeUnit;
 coeMars0New = coeMars0 .* coeUnit;
 coeAsteroid0New = coeAsteroid0 .* coeUnit;
 
+rpMinNew = rpMin * lUnit;
+
 tWaitUpper = 1825 * day;
 tTotalUpper = 5475 * day;
 tWaitUpperNew = tWaitUpper * tUnit;
 tTotalUpperNew = tTotalUpper * tUnit;
 
 %%
-lb = [0, 2, 5, 8, 11, 13, 0, 0, 0, 0, 0]';
-ub = [2, 5, 8, 11, 13, 15, 10, 10, 2 * pi, 2 * pi, 1e3]';
+lb = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]';
+ub = [5, 15, 15, 15, 15, 15, 10, 10, 2 * pi, 2 * pi, 1e3]';
 
-options = optimoptions("particleswarm", "SwarmSize", 10000, 'UseParallel', true, 'MaxIterations', 1000);
+options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 'MaxIterations', 1000);
 [init_X, init_result, exitflag] = particleswarm(@monoGA_obj, 11, lb, ub, options);
 
 
