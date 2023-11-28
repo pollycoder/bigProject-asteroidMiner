@@ -14,9 +14,13 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function J = monoGA_obj(X)
 tol = 1e-12;
-penalty = 1e20;
+penalty = 300;                        % Since the result should be negative, any positive number could be penalty
 % Penalty for time
-if X(2) - X(1) <= 0 || X(3) - X(2) <= 0 || X(4) - X(3) <= 0 || X(5) - X(4) <= 0 || X(6) - X(5) <= 0
+if X(2) - X(1) <= 0 || ... 
+   X(3) - X(2) <= 0 || ...
+   X(4) - X(3) <= 0 || ...
+   X(5) - X(4) <= 0 || ...
+   X(6) - X(5) <= 0
     %warning("时间出现反转。Penalty.");
     J = penalty;
     return;
@@ -33,9 +37,24 @@ end
 % Length: km
 % Angle: rad
 % Time: s
-coeAsteroid0 = [4.374587943314110e+08, 0.134098123850821, 0.0540505062211469, 2.61854482481308, 4.00216803342331, 3.31673390721605];
-coeEarth0 = [1.495484423703440e+08, 0.0163866660358080, 5.40080930104537e-05, 3.71828887427766, 4.38789863130065, 6.20499744208261];
-coeMars0 = [2.279254603773820e+08, 0.0934491898618057, 0.0322523881233316, 0.863747331544666, 5.00261081874214, 1.94894057775148];
+coeAsteroid0 = [4.374587943314110e+08, ...
+                0.134098123850821, ...
+                0.0540505062211469, ...
+                2.61854482481308, ...
+                4.00216803342331, ...
+                3.31673390721605];
+coeEarth0 = [1.495484423703440e+08, ...
+             0.0163866660358080, ...
+             5.40080930104537e-05, ...
+             3.71828887427766, ...
+             4.38789863130065, ...
+             6.20499744208261];
+coeMars0 = [2.279254603773820e+08, ...
+            0.0934491898618057, ...
+            0.0322523881233316, ...
+            0.863747331544666, ...
+            5.00261081874214, ...
+            1.94894057775148];
 muMars = 4.282837521400000e+04;
 muSun = 1.327124400180000e+11;
 Isp = 3000;
@@ -93,13 +112,13 @@ dv1 = norm(dv1New) / vUnit;                                 % Unit transform to 
 [mTotalt0, dmt0] = impulseFuel(mTotal0, dv1, Isp);          % Mass change (t=t0)
 mFuel = mFuel - dmt0;                                       % Fuel cost (t=t0)
 
-
+%{
 if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
     %warning("脉冲1，燃料耗尽。Penalty.")
     J = penalty;                                            % J < 0, therefore penalty > 0
     return
 end
-
+%}
 
 % GA-1: SOI (t1)
 % vt11 would become the velocity for GA
@@ -125,13 +144,13 @@ dv3 = norm(dv3New) / vUnit;                                 % Unit transform to 
 [mTotalt21, dmt2] = impulseFuel(mTotalt1, dv3, Isp);        % Mass change (t=t2)
 mFuel = mFuel - dmt2;                                       % Fuel cost (t=t2)
 
-
+%{
 if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
     %warning("脉冲2,3，燃料耗尽。Penalty.");
     J = penalty;                                            % J < 0, therefore penalty > 0
     return
 end
-
+%}
 
 % Sampling (t2)
 mTotalt22 = mTotalt21 + X(11);                              % Add sample mass
@@ -152,14 +171,15 @@ dv4 = norm(dv4New) / vUnit;                                 % Unit transform to 
 [mTotalt3, dmt3] = impulseFuel(mTotalt22, dv4, Isp);        % Mass change (t=t3)
 mFuel = mFuel - dmt3;                                       % Fuel cost (t=t3)
 
-
+%{
 if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
-    %warning("脉冲4,燃料耗尽。Penalty.");
+    warning("脉冲4,燃料耗尽。Penalty.");
     J = penalty;                                            % J < 0, therefore penalty > 0
     return
 end
+%}
 
-
+%
 % GA-1: SOI (t1)
 % vt11 would become the velocity for GA
 [vt42New, ~] = SOI_after(vt41New, vMt4New, muMarsNew, ...
@@ -178,26 +198,27 @@ dv5 = norm(dv5New) / vUnit;                                 % Unit transform to 
 [mTotalt4, dmt4] = impulseFuel(mTotalt3, dv5, Isp);         % Mass change (t=t4)
 mFuel = mFuel - dmt4;
 
-
+%{
 if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
     %warning("脉冲5,燃料耗尽。Penalty.");
     J = penalty;                                            % J < 0, therefore penalty > 0
     return
 end
-
+%}
 
 dv6New = vEt5New - vt5New;                                  % 6th impulse (t=t5)
 dv6 = norm(dv6New) / vUnit;                                 % Unit transform to fit the impulse solver
 [mTotalt5, dmt5] = impulseFuel(mTotalt4, dv6, Isp);         % Mass change (t=t5)
 mFuel = mFuel - dmt5;
 
-
+%{
 if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
     %warning("脉冲6,燃料耗尽。Penalty.");
     J = penalty;                                            % J < 0, therefore penalty > 0
     return
 end
+%}
 
-
-J = -X(11);
+%
+J = -mFuel;
 end
