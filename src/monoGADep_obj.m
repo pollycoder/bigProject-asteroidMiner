@@ -1,33 +1,32 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% The first solution: mono-GA method
-% One GA for departure, one GA for return.
+% The second solution: mono-GA method - only departure
+% One GA for departure, no GA for return.
 % Caution: index:
 % - New: new unit
 % - Int: international unit
 % - Km: especially for length, velocity and mu, 
 %       because the length unit here is km
-% X(1)~X(6): Time
-% X(7)~X(8): rp
-% X(9)~X(10): Phi
-% X(11): mf
+% X(1)~X(5): Time
+% X(6)~X(7): rp
+% X(8)~X(9): Phi
+% X(10): mf
 % X: new unit
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function J = monoGA_obj(X)
+function J = monoGADep_obj(X)
 tol = 1e-12;
 penalty = 1e20;                        % Since the result should be negative, any positive number could be penalty
-% Penalty for time 
-if ~all(X(:) > 0)
-    J = penalty;
-    return
-end
-dX = diff(X);
-if ~all(dX(1:5) > 0)
+% Penalty for time               
+if X(2) - X(1) <= 0 || ... 
+   X(3) - X(2) <= 0 || ...
+   X(4) - X(3) <= 0 || ...
+   X(5) - X(4) <= 0 || ...
+   X(6) - X(5) <= 0
     %warning("时间出现反转。Penalty.");
     J = penalty;
     return;
 end
 
-if X(1) > 4.9990 || X(6) > 14.9990
+if X(1) > 5 || X(6) > 15
     %warning("任务时间超过，Penalty.");
     J = penalty;
     return
@@ -129,7 +128,7 @@ end
 % GA-1: SOI (t1)
 % vt11 would become the velocity for GA
 [vt12New, ~] = SOI_after(vt11New, vMt1New, muMarsNew, ...
-                         X(7), X(9));                       % SOI
+                         X(6), X(8));                       % SOI
 
 % Arrival: M->A (t1-t2)
 tMA = X(3) - X(2);
@@ -162,70 +161,34 @@ end
 
 %
 % Sampling (t2)
-mTotalt22 = mTotalt21 + X(11);                              % Add sample mass
-mDry = mDry + X(11);                                        % Sample mass is included in dry mass
+mTotalt22 = mTotalt21 + X(10);                              % Add sample mass
+mDry = mDry + X(10);                                        % Sample mass is included in dry mass
 
 % Return: A->M (t3-t4)
-tAM = X(5) - X(4);
+tAE = X(5) - X(4);
 [rAt3New, vAt3New] = rv02rvf(rA0New, vA0New, ...
                              X(4), muSunNew);               % RV of Asteroid (t=t3)
-[rMt4New, vMt4New] = rv02rvf(rM0New, vM0New, ...
-                             X(5), muSunNew);               % RV of Mars (t=t4)
+[rEt4New, vEt4New] = rv02rvf(rE0New, vE0New, ...
+                             X(5), muSunNew);               % RV of Earth (t=t4)
 
-[vt3New, vt41New] = LambSol(rAt3New, rMt4New, ...
-                            tAM, muSunNew);                 % Lambert problem 3: A->M
+[vt3New, vt4New] = LambSol(rAt3New, rEt4New, ...
+                            tAE, muSunNew);                 % Lambert problem 3: A->E
 
 dv4New = vt3New - vAt3New;                                  % 4th impulse (t=t3)
-dv4NormNew = norm(dv4New);                                  % Unit transform to fit the impulse solver
+dv4NormNew = norm(dv4New);                                         % Unit transform to fit the impulse solver
 [mTotalt3, dmt3] = impulseFuel(mTotalt22, dv4NormNew, ...
                                IspNew, g0New);              % Mass change (t=t3)
 mFuel = mFuel - dmt3;                                       % Fuel cost (t=t3)
 
-%{
-if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
-    %warning("脉冲4,燃料耗尽。Penalty.");
-    J = penalty;                                            % J < 0, therefore penalty > 0
-    return
-end
-%}
-
-%
-% GA-1: SOI (t1)
-% vt11 would become the velocity for GA
-[vt42New, ~] = SOI_after(vt41New, vMt4New, muMarsNew, ...
-                         X(8), X(10));                       % SOI
-
-% Return: M->E (t4-t5)
-tME = X(6) - X(5);
-[rEt5New, vEt5New] = rv02rvf(rE0New, vE0New, ...
-                             X(6), muSunNew);               % RV of Earth (t=t5)
-
-[vt43New, vt5New] = LambSol(rMt4New, rEt5New, ...
-                            tME, muSunNew);                 % Lambert problem 4: M->E
-
-dv5New = vt43New - vt42New;                                 % 5th impulse (t=t4)
-dv5NormNew = norm(dv5New);                                  % Unit transform to fit the impulse solver
+dv5New = vEt4New - vt4New;                                  % 5th impulse (t=t5)
+dv5NormNew = norm(dv5New);                                         % Unit transform to fit the impulse solver
 [mTotalt4, dmt4] = impulseFuel(mTotalt3, dv5NormNew, ...
-                               IspNew, g0New);              % Mass change (t=t4)
+                               IspNew, g0New);              % Mass change (t=t5)
 mFuel = mFuel - dmt4;
 
 %{
 if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
     %warning("脉冲5,燃料耗尽。Penalty.");
-    J = penalty;                                            % J < 0, therefore penalty > 0
-    return
-end
-%}
-
-dv6New = vEt5New - vt5New;                                  % 6th impulse (t=t5)
-dv6NormNew = norm(dv6New);                                         % Unit transform to fit the impulse solver
-[mTotalt5, dmt5] = impulseFuel(mTotalt4, dv6NormNew, ...
-                               IspNew, g0New);              % Mass change (t=t5)
-mFuel = mFuel - dmt5;
-
-%{
-if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
-    %warning("脉冲6,燃料耗尽。Penalty.");
     J = penalty;                                            % J < 0, therefore penalty > 0
     return
 end
