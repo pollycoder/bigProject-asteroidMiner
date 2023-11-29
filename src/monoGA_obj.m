@@ -159,7 +159,7 @@ if mFuel < 0                                                % Penalty, to stop c
 end
 %}
 
-%{
+%
 % Sampling (t2)
 mTotalt22 = mTotalt21 + X(11);                              % Add sample mass
 mDry = mDry + X(11);                                        % Sample mass is included in dry mass
