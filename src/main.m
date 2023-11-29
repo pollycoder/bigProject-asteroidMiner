@@ -42,13 +42,10 @@ rpMinNew = rpMin * lUnit;
 tWaitUpper = 1825 * day;
 tTotalUpper = 5475 * day;
 tWaitUpperNew = tWaitUpper * tUnit;
-tTotalUpperNew = tTotalUpper * tUnit;
-
-%%
 lb = [0, 1, 3, 5, 7, 9, 0, 0, 0, 0, 0]';
-ub = [2, 3, 10, 12, 13, 15, 10, 10, 2 * pi, 2 * pi, 0]';
+ub = [2, 3, 10, 12, 13, 15, 10, 10, 2 * pi, 2 * pi, 0]';c
 
-options = optimoptions("particleswarm", "SwarmSize", 10000, 'UseParallel', true, 'MaxIterations', 1000, "Display","iter");
+options = optimoptions("particleswarm", "SwarmSize", 10000, 'UseParallel', true, 'MaxIterations', 100, "Display","iter");
 [init_X, init_result, exitflag] = particleswarm(@monoGA_obj, 11, lb, ub, options);
 
 %%

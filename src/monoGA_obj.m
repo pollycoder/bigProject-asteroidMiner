@@ -14,8 +14,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function J = monoGA_obj(X)
 tol = 1e-12;
-penalty = 300;                        % Since the result should be negative, any positive number could be penalty
-% Penalty for time
+penalty = 500;                        % Since the result should be negative, any positive number could be penalty
+% Penalty for time               
 if X(2) - X(1) <= 0 || ... 
    X(3) - X(2) <= 0 || ...
    X(4) - X(3) <= 0 || ...
