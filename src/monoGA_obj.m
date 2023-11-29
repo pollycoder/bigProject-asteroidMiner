@@ -58,6 +58,7 @@ coeMars0 = [2.279254603773820e+08, ...
 muMars = 4.282837521400000e+04;
 muSun = 1.327124400180000e+11;
 Isp = 3000;
+g0 = 9.806650000000000e-3;
 RMars = 3.389920000000000e+03;
 hpmin = 300;
 
@@ -69,12 +70,15 @@ hpmin = 300;
 lUnit = 1 / coeEarth0(1);                                   % Length (AU)
 tUnit = 1 / (2 * pi * sqrt(coeEarth0(1) ^ 3 / muSun));      % Time (y)
 vUnit = lUnit / tUnit;                                      % Velocity (AU/y)
+aUnit = lUnit / tUnit^2;
 muUnit = lUnit ^ 3 / tUnit ^ 2;                             % Mu (AU^3/y^2)
 coeUnit = [lUnit, ones(1, 5)];                              % Change the unit of orbit elements quickly
 
 % New unit - They will be set as global constant
 muSunNew = muSun * muUnit;
 muMarsNew = muMars * muUnit;
+IspNew = Isp * tUnit;
+g0New = g0 * aUnit;
 
 coeEarth0New = coeEarth0 .* coeUnit;
 coeMars0New = coeMars0 .* coeUnit;
@@ -108,8 +112,9 @@ tEMNew = X(2) - X(1);                                       % Transfer time
                             tEMNew, muSunNew);              % Lambert problem 1: E->M
 
 dv1New = vt0New - vEt0New;                                  % 1st impulse (t=t0)
-dv1 = norm(dv1New) / vUnit;                                 % Unit transform to fit the impulse solver
-[mTotalt0, dmt0] = impulseFuel(mTotal0, dv1, Isp);          % Mass change (t=t0)
+dv1NormNew = norm(dv1New);                                  % Unit transform to fit the impulse solver
+[mTotalt0, dmt0] = impulseFuel(mTotal0, dv1NormNew, ...
+                               IspNew, g0New);              % Mass change (t=t0)
 mFuel = mFuel - dmt0;                                       % Fuel cost (t=t0)
 
 %{
@@ -135,13 +140,15 @@ tMA = X(3) - X(2);
                             tMA, muSunNew);                 % Lambert problem 2: M->A
 
 dv2New = vt13New - vt12New;                                 % 2nd impulse (t=t1)
-dv2 = norm(dv2New) / vUnit;                                 % Unit transform to fit the impulse solver
-[mTotalt1, dmt1] = impulseFuel(mTotalt0, dv2, Isp);         % Mass change (t=t1)
+dv2NormNew = norm(dv2New);                                  % Unit transform to fit the impulse solver
+[mTotalt1, dmt1] = impulseFuel(mTotalt0, dv2NormNew, ...
+                               IspNew, g0New);              % Mass change (t=t1)
 mFuel = mFuel - dmt1;                                       % Fuel cost (t=t1)
 
 dv3New = vAt2New - vt2New;                                  % 3rd impulse (t=t2)
-dv3 = norm(dv3New) / vUnit;                                 % Unit transform to fit the impulse solver
-[mTotalt21, dmt2] = impulseFuel(mTotalt1, dv3, Isp);        % Mass change (t=t2)
+dv3NormNew = norm(dv3New);                                  % Unit transform to fit the impulse solver
+[mTotalt21, dmt2] = impulseFuel(mTotalt1, dv3NormNew, ...
+                                IspNew, g0New);             % Mass change (t=t2)
 mFuel = mFuel - dmt2;                                       % Fuel cost (t=t2)
 
 %{
@@ -152,6 +159,7 @@ if mFuel < 0                                                % Penalty, to stop c
 end
 %}
 
+%{
 % Sampling (t2)
 mTotalt22 = mTotalt21 + X(11);                              % Add sample mass
 mDry = mDry + X(11);                                        % Sample mass is included in dry mass
@@ -219,6 +227,7 @@ if mFuel < 0                                                % Penalty, to stop c
 end
 %}
 
-%
+%}
+
 J = -mFuel;
 end
