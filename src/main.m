@@ -48,15 +48,7 @@ tWaitUpperNew = tWaitUpper * tUnit;
 lb = [0, 2, 5, 6, 9, 9, 0, 0, 0, 0, 0]';
 ub = [2, 5, 9, 15, 15, 15, 10, 10, 2 * pi, 2 * pi, 10]';
 
-%%
-<<<<<<< HEAD
-lb = [0, 1, 3, 5, 7, 9, 0, 0, 0, 0, 0]';
-ub = [2, 3, 10, 12, 13, 15, 10, 10, 2 * pi, 2 * pi, 0]';
-
-options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 'MaxIterations', 100, "Display","iter");
-=======
-options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 'MaxIterations', 1000, "Display","iter");
->>>>>>> 49ee0b101e9082291dd22670b7ec33604c2131e2
+options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 'MaxIterations', 100);
 [init_X, init_result, exitflag] = particleswarm(@monoGA_obj, 11, lb, ub, options);
 
 %%

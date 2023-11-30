@@ -112,19 +112,20 @@ tEMNew = X(2) - X(1);                                       % Transfer time
 [vt0New, vt11New] = LambSol(rEt0New, rMt1New, ...
                             tEMNew, muSunNew);              % Lambert problem 1: E->M
 
-dv1New = vt0New - vEt0New;                                  % 1st impulse (t=t0)
-dv1NormNew = norm(dv1New);                                  % Unit transform to fit the impulse solver
-[mTotalt0, dmt0] = impulseFuel(mTotal0, dv1NormNew, ...
+dvt0New = vt0New - vEt0New;                                 % 1st impulse (t=t0)
+dvt0NormNew = norm(dvt0New);                                % Unit transform to fit the impulse solver
+dvt0Norm = dvt0NormNew / vUnit;
+if dvt0Norm < 4
+    dvt0Norm = 0;
+    dvt0NormNew = 0;
+else
+    dvt0Norm = dvt0Norm - 4;
+    dvt0NormNew = dvt0Norm * vUnit;
+end
+[mTotalt0, dmt0] = impulseFuel(mTotal0, dvt0NormNew, ...
                                IspNew, g0New);              % Mass change (t=t0)
 mFuel = mFuel - dmt0;                                       % Fuel cost (t=t0)
 
-%{
-if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
-    %warning("脉冲1，燃料耗尽。Penalty.")
-    J = penalty;                                            % J < 0, therefore penalty > 0
-    return
-end
-%}
 
 % GA-1: SOI (t1)
 % vt11 would become the velocity for GA
@@ -140,27 +141,19 @@ tMA = X(3) - X(2);
 [vt13New, vt2New] = LambSol(rMt1New, rAt2New, ...
                             tMA, muSunNew);                 % Lambert problem 2: M->A
 
-dv2New = vt13New - vt12New;                                 % 2nd impulse (t=t1)
-dv2NormNew = norm(dv2New);                                  % Unit transform to fit the impulse solver
-[mTotalt1, dmt1] = impulseFuel(mTotalt0, dv2NormNew, ...
+dvt1New = vt13New - vt12New;                                % 2nd impulse (t=t1)
+dvt1NormNew = norm(dvt1New);                                % Unit transform to fit the impulse solver
+[mTotalt1, dmt1] = impulseFuel(mTotalt0, dvt1NormNew, ...
                                IspNew, g0New);              % Mass change (t=t1)
 mFuel = mFuel - dmt1;                                       % Fuel cost (t=t1)
 
-dv3New = vAt2New - vt2New;                                  % 3rd impulse (t=t2)
-dv3NormNew = norm(dv3New);                                  % Unit transform to fit the impulse solver
-[mTotalt21, dmt2] = impulseFuel(mTotalt1, dv3NormNew, ...
+dvt2New = vAt2New - vt2New;                                 % 3rd impulse (t=t2)
+dvt2NormNew = norm(dvt2New);                                % Unit transform to fit the impulse solver
+[mTotalt21, dmt2] = impulseFuel(mTotalt1, dvt2NormNew, ...
                                 IspNew, g0New);             % Mass change (t=t2)
 mFuel = mFuel - dmt2;                                       % Fuel cost (t=t2)
 
-%{
-if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
-    %warning("脉冲2,3，燃料耗尽。Penalty.");
-    J = penalty;                                            % J < 0, therefore penalty > 0
-    return
-end
-%}
 
-%
 % Sampling (t2)
 mTotalt22 = mTotalt21 + X(11);                              % Add sample mass
 mDry = mDry + X(11);                                        % Sample mass is included in dry mass
@@ -175,25 +168,17 @@ tAM = X(5) - X(4);
 [vt3New, vt41New] = LambSol(rAt3New, rMt4New, ...
                             tAM, muSunNew);                 % Lambert problem 3: A->M
 
-dv4New = vt3New - vAt3New;                                  % 4th impulse (t=t3)
-dv4NormNew = norm(dv4New);                                  % Unit transform to fit the impulse solver
-[mTotalt3, dmt3] = impulseFuel(mTotalt22, dv4NormNew, ...
+dvt3New = vt3New - vAt3New;                                 % 4th impulse (t=t3)
+dvt3NormNew = norm(dvt3New);                                % Unit transform to fit the impulse solver
+[mTotalt3, dmt3] = impulseFuel(mTotalt22, dvt3NormNew, ...
                                IspNew, g0New);              % Mass change (t=t3)
 mFuel = mFuel - dmt3;                                       % Fuel cost (t=t3)
 
-%{
-if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
-    %warning("脉冲4,燃料耗尽。Penalty.");
-    J = penalty;                                            % J < 0, therefore penalty > 0
-    return
-end
-%}
 
-%
 % GA-1: SOI (t1)
 % vt11 would become the velocity for GA
 [vt42New, ~] = SOI_after(vt41New, vMt4New, muMarsNew, ...
-                         X(8), X(10));                       % SOI
+                         X(8), X(10));                      % SOI
 
 % Return: M->E (t4-t5)
 tME = X(6) - X(5);
@@ -203,23 +188,23 @@ tME = X(6) - X(5);
 [vt43New, vt5New] = LambSol(rMt4New, rEt5New, ...
                             tME, muSunNew);                 % Lambert problem 4: M->E
 
-dv5New = vt43New - vt42New;                                 % 5th impulse (t=t4)
-dv5NormNew = norm(dv5New);                                  % Unit transform to fit the impulse solver
-[mTotalt4, dmt4] = impulseFuel(mTotalt3, dv5NormNew, ...
+dvt4New = vt43New - vt42New;                                % 5th impulse (t=t4)
+dvt4NormNew = norm(dvt4New);                                % Unit transform to fit the impulse solver
+[mTotalt4, dmt4] = impulseFuel(mTotalt3, dvt4NormNew, ...
                                IspNew, g0New);              % Mass change (t=t4)
 mFuel = mFuel - dmt4;
 
-%{
-if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
-    %warning("脉冲5,燃料耗尽。Penalty.");
-    J = penalty;                                            % J < 0, therefore penalty > 0
-    return
+dvt5New = vEt5New - vt5New;                                 % 6th impulse (t=t5)
+dvt5NormNew = norm(dvt5New);                                % Unit transform to fit the impulse solver
+dvt5Norm = dvt5NormNew / vUnit;
+if dvt5Norm < 4
+    dvt5Norm = 0;
+    dvt5NormNew = 0;
+else
+    dvt5Norm = dvt0Norm - 4;
+    dvt5NormNew = dvt0Norm * vUnit;
 end
-%}
-
-dv6New = vEt5New - vt5New;                                  % 6th impulse (t=t5)
-dv6NormNew = norm(dv6New);                                         % Unit transform to fit the impulse solver
-[mTotalt5, dmt5] = impulseFuel(mTotalt4, dv6NormNew, ...
+[mTotalt5, dmt5] = impulseFuel(mTotalt4, dvt5NormNew, ...
                                IspNew, g0New);              % Mass change (t=t5)
 mFuel = mFuel - dmt5;
 
@@ -231,7 +216,6 @@ if mFuel < 0                                                % Penalty, to stop c
 end
 %}
 
-%
-
 J = -mFuel;
+
 end
