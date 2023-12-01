@@ -1,99 +1,67 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% The first solution: mono-GA method
-% One GA for departure, one GA for return.
-% Caution: index:
-% - New: new unit
-% - Int: international unit
-% - Km: especially for length, velocity and mu, 
-%       because the length unit here is km
-% X(1)~X(6): Time
-% X(7)~X(8): rp
-% X(9)~X(10): Phi
-% X(11): mf
-% X: new unit
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function J = monoGA_obj(X)
-tol = 1e-12;
-penalty = 1e20;                        % Since the result should be negative, any positive number could be penalty
-% Penalty for time 
-if ~all(X(:) > 0)
-    J = penalty;
-    return
-end
-dX = diff(X);
-if ~all(dX(1:5) > 0)
-    %warning("时间出现反转。Penalty.");
-    J = penalty;
-    return;
-end
-
-if X(1) > 4.9990 || X(6) > 14.9990
-    %warning("任务时间超过，Penalty.");
-    J = penalty;
-    return
-end
-
+clc
+clear all
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Big Project - Asteroid Mining
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Constant
 % Unit:
 % Length: km
 % Angle: rad
 % Time: s
-coeAsteroid0 = [4.374587943314110e+08, ...
-                0.134098123850821, ...
-                0.0540505062211469, ...
-                2.61854482481308, ...
-                4.00216803342331, ...
-                3.31673390721605];
-coeEarth0 = [1.495484423703440e+08, ...
-             0.0163866660358080, ...
-             5.40080930104537e-05, ...
-             3.71828887427766, ...
-             4.38789863130065, ...
-             6.20499744208261];
-coeMars0 = [2.279254603773820e+08, ...
-            0.0934491898618057, ...
-            0.0322523881233316, ...
-            0.863747331544666, ...
-            5.00261081874214, ...
-            1.94894057775148];
+coeAsteroid0 = [4.374587943314110e+08, 0.134098123850821, 0.0540505062211469, 2.61854482481308, 4.00216803342331, 3.31673390721605];
+coeEarth0 = [1.495484423703440e+08, 0.0163866660358080, 5.40080930104537e-05, 3.71828887427766, 4.38789863130065, 6.20499744208261];
+coeMars0 = [2.279254603773820e+08, 0.0934491898618057, 0.0322523881233316, 0.863747331544666, 5.00261081874214, 1.94894057775148];
 muMars = 4.282837521400000e+04;
 muSun = 1.327124400180000e+11;
-Isp = 3000;
+day = 86400;
 g0 = 9.806650000000000e-3;
+Isp = 3000;
 RMars = 3.389920000000000e+03;
-hpmin = 300;
+rpMin = 300 + RMars;
 
-
-% Unit transform
+%% Unit transform
 % To make the calculation faster and preciser.
 % From now on, all the calculation will be completed 
 % in new unit system.
 lUnit = 1 / coeEarth0(1);                                   % Length (AU)
 tUnit = 1 / (2 * pi * sqrt(coeEarth0(1) ^ 3 / muSun));      % Time (y)
 vUnit = lUnit / tUnit;                                      % Velocity (AU/y)
-aUnit = lUnit / tUnit^2;
+aUnit = lUnit / tUnit^2;                                    % Acceleration (AU/y^2)
 muUnit = lUnit ^ 3 / tUnit ^ 2;                             % Mu (AU^3/y^2)
 coeUnit = [lUnit, ones(1, 5)];                              % Change the unit of orbit elements quickly
 
 % New unit - They will be set as global constant
 muSunNew = muSun * muUnit;
 muMarsNew = muMars * muUnit;
-IspNew = Isp * tUnit;
 g0New = g0 * aUnit;
+IspNew = Isp * tUnit;
 
 coeEarth0New = coeEarth0 .* coeUnit;
 coeMars0New = coeMars0 .* coeUnit;
 coeAsteroid0New = coeAsteroid0 .* coeUnit;
 
-% Penalty for rp - new unit
-rpMin = hpmin + RMars;
 rpMinNew = rpMin * lUnit;
-if X(7) < rpMinNew || X(8) < rpMinNew
-    %waring("借力高度不够。Penalty.")
-    J = penalty;
-    return
-end
 
+tWaitUpper = 1825 * day;
+tTotalUpper = 5475 * day;
+tWaitUpperNew = tWaitUpper * tUnit;
+lb = [0, 2, 5, 6, 9, 9, 0, 0, 0, 0, 0]';
+ub = [2, 5, 9, 15, 15, 15, 10, 10, 2 * pi, 2 * pi, 10]';
+
+%%
+options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 'MaxIterations', 100);
+[X, init_result, exitflag] = particleswarm(@monoGA_obj, 11, lb, ub, options);
+
+%%
+options = optimset('Display','iter', 'MaxIter', 10000);
+[X, result] = fminsearch(@monoGA_obj, X, options);
+
+J = monoGA_obj(X);
+
+
+
+%%
+tol = 1e-12;
 % Initial mass
 mDry = 500;                                                 % Initial dry mass (kg)                     
 mFuel = 500;                                                % Initial fuel mass (kg)
@@ -129,7 +97,7 @@ mFuel = mFuel - dmt0;                                       % Fuel cost (t=t0)
 
 % GA-1: SOI (t1)
 % vt11 would become the velocity for GA
-[vt12New, ~] = SOI_after(vt11New, vMt1New, muMarsNew, ...
+[vt12New, dvt1GANew] = SOI_after(vt11New, vMt1New, muMarsNew, ...
                          X(7), X(9));                       % SOI
 
 % Arrival: M->A (t1-t2)
@@ -175,9 +143,9 @@ dvt3NormNew = norm(dvt3New);                                % Unit transform to 
 mFuel = mFuel - dmt3;                                       % Fuel cost (t=t3)
 
 
-% GA-1: SOI (t1)
+% GA-1: SOI (t4)
 % vt11 would become the velocity for GA
-[vt42New, ~] = SOI_after(vt41New, vMt4New, muMarsNew, ...
+[vt42New, dvt4GANew] = SOI_after(vt41New, vMt4New, muMarsNew, ...
                          X(8), X(10));                      % SOI
 
 % Return: M->E (t4-t5)
@@ -208,14 +176,43 @@ end
                                IspNew, g0New);              % Mass change (t=t5)
 mFuel = mFuel - dmt5;
 
-%
-if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
-    %warning("脉冲6,燃料耗尽。Penalty.");
-    J = penalty;                                            % J < 0, therefore penalty > 0
-    return
-end
-%}
+dvt0 = dvt0New / vUnit;
+dvt1 = dvt1New / vUnit;
+dvt2 = dvt2New / vUnit;
+dvt3 = dvt3New / vUnit;
+dvt4 = dvt4New / vUnit;
+dvt5 = dvt5New / vUnit;
+dvt1GA = dvt1GANew / vUnit;
+dvt4GA = dvt4GANew / vUnit;
 
-J = -mDry + 500;
+vA0 = vA0New / vUnit;
+vAt2 = vAt3New / vUnit;
+vAt3 = vAt3New / vUnit;
+vEt0 = vEt0New / vUnit;
+vEt5 = vEt5New / vUnit;
+vMt1 = vMt1New / vUnit;
+vMt4 = vMt4New / vUnit;
+vt0 = vt0New / vUnit;
+vt11 = vt11New / vUnit;
+vt12 = vt12New / vUnit;
+vt13 = vt13New / vUnit;
+vt2 = vt2New / vUnit;
+vt3 = vt3New / vUnit;
+vt41 = vt41New / vUnit;
+vt42 = vt42New / vUnit;
+vt43 = vt43New / vUnit;
+vt5 = vt5New / vUnit;
 
-end
+rA0 = rA0New / lUnit;
+rAt2 = rAt2New / lUnit;
+rAt3 = rAt3New / lUnit;
+rE0 = rE0New / lUnit;
+rEt0 = rEt0New / lUnit;
+rEt5 = rEt5New / lUnit;
+rM0 = rM0New / lUnit;
+rMt1 = rMt1New / lUnit;
+rMt4 = rMt4New / lUnit;
+
+X_int = X;
+X_int(1:6) = X(1:6) / tUnit / day;
+
