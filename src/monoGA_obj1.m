@@ -214,14 +214,7 @@ end
                                IspNew, g0New);              % Mass change (t=t5)
 mFuel = mFuel - dmt5;
 
-%
-if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
-    %warning("脉冲6,燃料耗尽。Penalty.");
-    J = penalty;                                            % J < 0, therefore penalty > 0
-    return
-end
-%}
 
-J = -X(11);
+J = -mFuel;
 
 end

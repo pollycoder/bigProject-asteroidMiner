@@ -49,15 +49,18 @@ lb = [0, 2, 5, 6, 9, 9, 0, 0, 0, 0, 0]';
 ub = [2, 5, 9, 15, 15, 15, 10, 10, 2 * pi, 2 * pi, 10]';
 
 %%
-options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 'MaxIterations', 100);
-[X, init_result, exitflag] = particleswarm(@monoGA_obj, 11, lb, ub, options);
+options = optimoptions("particleswarm", "SwarmSize", 10000, 'UseParallel', true, 'MaxIterations', 100);
+[X, init_result, exitflag] = particleswarm(@monoGA_obj1, 11, lb, ub, options);
 
 %%
-options = optimset('Display','iter', 'MaxIter', 10000);
+options = optimset('MaxIter', 10000);
+[X, result] = fminsearch(@monoGA_obj1, X, options);
+
+%%
+X(11) = 895.7;
 [X, result] = fminsearch(@monoGA_obj, X, options);
-
-J = monoGA_obj(X);
-
+fprintf("m=%f\n", X(11));
+fprintf("J=%f\n",result);
 
 
 %%
@@ -84,9 +87,12 @@ dvt0New = vt0New - vEt0New;                                 % 1st impulse (t=t0)
 dvt0NormNew = norm(dvt0New);                                % Unit transform to fit the impulse solver
 dvt0Norm = dvt0NormNew / vUnit;
 if dvt0Norm < 4
+    dvt0New = zeros(3, 1);
     dvt0Norm = 0;
     dvt0NormNew = 0;
 else
+    dvt0Vector = dvt0New / dvt0NormNew;
+    dvt0New = dvt0New - 4 * dvt0Vector;
     dvt0Norm = dvt0Norm - 4;
     dvt0NormNew = dvt0Norm * vUnit;
 end
@@ -166,11 +172,14 @@ dvt5New = vEt5New - vt5New;                                 % 6th impulse (t=t5)
 dvt5NormNew = norm(dvt5New);                                % Unit transform to fit the impulse solver
 dvt5Norm = dvt5NormNew / vUnit;
 if dvt5Norm < 4
+    dvt5New = zeros(3, 1);
     dvt5Norm = 0;
     dvt5NormNew = 0;
 else
-    dvt5Norm = dvt0Norm - 4;
-    dvt5NormNew = dvt0Norm * vUnit;
+    dvt5Vector = dvt5New / dvt5NormNew;
+    dvt5New = dvt5New - 4 * dvt5Vector;
+    dvt5Norm = dvt5Norm - 4;
+    dvt5NormNew = dvt5Norm * vUnit;
 end
 [mTotalt5, dmt5] = impulseFuel(mTotalt4, dvt5NormNew, ...
                                IspNew, g0New);              % Mass change (t=t5)
@@ -186,7 +195,7 @@ dvt1GA = dvt1GANew / vUnit;
 dvt4GA = dvt4GANew / vUnit;
 
 vA0 = vA0New / vUnit;
-vAt2 = vAt3New / vUnit;
+vAt2 = vAt2New / vUnit;
 vAt3 = vAt3New / vUnit;
 vEt0 = vEt0New / vUnit;
 vEt5 = vEt5New / vUnit;
@@ -215,4 +224,5 @@ rMt4 = rMt4New / lUnit;
 
 X_int = X;
 X_int(1:6) = X(1:6) / tUnit / day;
-
+X_int(9) = mod(X_int(9), 2 * pi);
+X_int(10) = mod(X_int(10), 2 * pi);
