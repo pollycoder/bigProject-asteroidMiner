@@ -92,7 +92,7 @@ if dvt0Norm < 4
     dvt0NormNew = 0;
 else
     dvt0Vector = dvt0New / dvt0NormNew;
-    dvt0New = dvt0New - 4 * dvt0Vector;
+    dvt0New = dvt0New - 4 * dvt0Vector * vUnit;
     dvt0Norm = dvt0Norm - 4;
     dvt0NormNew = dvt0Norm * vUnit;
 end
@@ -177,7 +177,7 @@ if dvt5Norm < 4
     dvt5NormNew = 0;
 else
     dvt5Vector = dvt5New / dvt5NormNew;
-    dvt5New = dvt5New - 4 * dvt5Vector;
+    dvt5New = dvt5New - 4 * dvt5Vector * vUnit;
     dvt5Norm = dvt5Norm - 4;
     dvt5NormNew = dvt5Norm * vUnit;
 end
