@@ -19,7 +19,7 @@ Isp = 3000;
 RMars = 3.389920000000000e+03;
 rpMin = 300 + RMars;
 
-%% Unit transform
+% Unit transform
 % To make the calculation faster and preciser.
 % From now on, all the calculation will be completed 
 % in new unit system.
@@ -49,7 +49,7 @@ lb = [0, 2, 5, 6, 9, 9, 0, 0, 0, 0, 0]';
 ub = [2, 5, 9, 15, 15, 15, 10, 10, 2 * pi, 2 * pi, 10]';
 
 %%
-options = optimoptions("particleswarm", "SwarmSize", 10000, 'UseParallel', true, 'MaxIterations', 100);
+options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 'MaxIterations', 1000, 'Display', 'iter');
 [X, init_result, exitflag] = particleswarm(@monoGA_obj1, 11, lb, ub, options);
 
 %%
@@ -64,7 +64,7 @@ fprintf("J=%f\n",result);
 
 
 %%
-tol = 1e-12;
+tol = 1e-20;
 % Initial mass
 mDry = 500;                                                 % Initial dry mass (kg)                     
 mFuel = 500;                                                % Initial fuel mass (kg)
@@ -226,3 +226,87 @@ X_int = X;
 X_int(1:6) = X(1:6) / tUnit / day;
 X_int(9) = mod(X_int(9), 2 * pi);
 X_int(10) = mod(X_int(10), 2 * pi);
+
+
+%% Plot
+% Earth, Mars, Asteroid
+n=100;
+f = linspace(0, 2 * pi, n);
+for i = 1:length(f)
+    coeENew = coeEarth0New;
+    coeENew(6) = f(i);
+    rE(:, i) = coe2rv(coeENew, muSunNew, tol);
+end
+for i = 1:length(f)
+    coeMNew = coeMars0New;
+    coeMNew(6) = f(i);
+    rM(:, i) = coe2rv(coeMNew, muSunNew, tol);
+end
+for i = 1:length(f)
+    coeANew = coeAsteroid0New;
+    coeANew(6) = f(i);
+    rA(:, i) = coe2rv(coeANew, muSunNew, tol);
+end
+plot3(rE(1,:), rE(2,:), rE(3,:), 'LineWidth', 1.5, 'Color', 'k');hold on
+plot3(rM(1,:), rM(2,:), rM(3,:), 'LineWidth', 1.5, 'Color', 'k');hold on
+plot3(rA(1,:), rA(2,:), rA(3,:), 'LineWidth', 1.5, 'Color', 'k');hold on
+
+
+% Trajectory
+r0 = rEt0New;
+v0 = vt0New;
+n1=1000;
+t01 = linspace(0, X(2) - X(1), n1);
+for i=1:length(t01)
+    [r(:, i), ~] = rv02rvf(r0, v0, t01(i), muSunNew);
+end
+plot3(r(1,:), r(2,:), r(3,:), 'LineWidth', 1.5, 'Color', 'r', 'LineStyle','--');hold on
+plot3(r(1,1), r(2,1), r(3,1),'g*','LineWidth', 2);hold on
+plot3(r(1, end), r(2,end), r(3,end),'b*','LineWidth', 2);hold on
+text(r(1,1), r(2,1), r(3,1), 'Departure');
+text(r(1, end), r(2,end), r(3,end), 'GA-Mars-1');
+
+r0 = rMt1New;
+v0 = vt13New;
+t12 = linspace(0, X(3) - X(2), n1);
+for i=1:length(t12)
+    [r(:, i), ~] = rv02rvf(r0, v0, t12(i), muSunNew);
+end
+plot3(r(1,:), r(2,:), r(3,:), 'LineWidth', 1.5, 'Color', 'm', 'LineStyle','--');hold on
+plot3(r(1, end), r(2,end), r(3,end),'m*','LineWidth', 2);hold on
+text(r(1, end), r(2,end), r(3,end), 'Arrival-Pysche-Mining');
+
+r0 = rAt2New;
+v0 = vAt2New;
+t23 = linspace(0, X(4)- X(3), n1);
+for i=1:length(t12)
+    [r(:, i), ~] = rv02rvf(r0, v0, t23(i), muSunNew);
+end
+plot3(r(1,:), r(2,:), r(3,:), 'LineWidth', 1.5, 'Color', 'g', 'LineStyle','--');hold on
+plot3(r(1, end), r(2,end), r(3,end),'g*','LineWidth', 2);hold on
+text(r(1, end), r(2,end), r(3,end), 'Return-Psyche');
+
+r0 = rAt3New;
+v0 = vt3New;
+t34 = linspace(0, X(5)- X(4), n1);
+for i=1:length(t12)
+    [r(:, i), ~] = rv02rvf(r0, v0, t34(i), muSunNew);
+end
+plot3(r(1,:), r(2,:), r(3,:), 'LineWidth', 1.5, 'Color', 'c', 'LineStyle','--');hold on
+plot3(r(1, end), r(2,end), r(3,end),'b*','LineWidth', 2);hold on
+text(r(1, end), r(2,end), r(3,end),'GA-Mars-2');
+
+r0 = rMt4New;
+v0 = vt43New;
+t45 = linspace(0, X(6)- X(5), n1);
+for i=1:length(t12)
+    [r(:, i), ~] = rv02rvf(r0, v0, t45(i), muSunNew);
+end
+plot3(r(1,:), r(2,:), r(3,:), 'LineWidth', 1.5, 'Color', 'b', 'LineStyle','--');hold on
+plot3(r(1, end), r(2,end), r(3,end),'r*','LineWidth', 2);hold on 
+text(r(1, end), r(2,end), r(3,end),'Arrival-Earth');
+
+plot3(0,0,0,'k*','LineWidth', 3);
+text(0,0,0,'Sun');
+
+axis equal

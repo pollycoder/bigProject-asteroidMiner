@@ -12,8 +12,8 @@
 % X(11): mf
 % X: new unit
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function J = monoGA_obj(X)
-tol = 1e-12;
+function J = monoGA_obj1(X)
+tol = 1e-20;
 penalty = 1e20;                        % Since the result should be negative, any positive number could be penalty
 % Penalty for time 
 if ~all(X(:) > 0)
