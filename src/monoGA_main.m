@@ -53,11 +53,12 @@ options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 
 [X, init_result, exitflag] = particleswarm(@monoGA_obj1, 11, lb, ub, options);
 
 %%
-options = optimset('MaxIter', 10000);
+options = optimset('MaxIter', 10000, 'Display', 'iter');
 [X, result] = fminsearch(@monoGA_obj1, X, options);
 
 %%
-X(11) = 895.7;
+X(11) = 895.79;
+options = optimset('MaxIter', 10000, 'Display', 'iter');
 [X, result] = fminsearch(@monoGA_obj, X, options);
 fprintf("m=%f\n", X(11));
 fprintf("J=%f\n",result);
