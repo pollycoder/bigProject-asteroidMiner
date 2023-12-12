@@ -57,10 +57,9 @@ options = optimset('MaxIter', 10000, 'Display', 'iter');
 [X, result] = fminsearch(@monoGA_obj1, X, options);
 
 %%
-X(11) = 1085;
+X(11) = 1243.75;
 options = optimset('MaxIter', 10000, 'Display', 'iter');
-[X, result] = fminsearch(@monoGA_obj, X, options);
-fprintf("m=%f\n", X(11));
+[X, result] = fminsearch(@monoGAc_obj, X, options);
 fprintf("J=%f\n",result);
 
 
