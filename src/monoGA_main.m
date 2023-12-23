@@ -45,23 +45,22 @@ rpMinNew = rpMin * lUnit;
 tWaitUpper = 1825 * day;
 tTotalUpper = 5475 * day;
 tWaitUpperNew = tWaitUpper * tUnit;
-lb = [0, 2, 5, 6, 9, 9, 0, 0, 0, 0, 0]';
-ub = [2, 5, 9, 15, 15, 15, 10, 10, 2 * pi, 2 * pi, 10]';
+lb = [0, 2, 5, 7, 9, 9, 0, 0, 0, 0, 0]';
+ub = [2, 5, 7, 9, 15, 15, 10, 10, 2 * pi, 2 * pi, 10]';
 
-%%
-options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 'MaxIterations', 1000, 'Display', 'iter');
+%% 
+options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 'MaxIterations', 1000);
 [X, init_result, exitflag] = particleswarm(@monoGA_obj1, 11, lb, ub, options);
 
 %%
-options = optimset('MaxIter', 10000, 'Display', 'iter');
+options = optimset('MaxIter', 10000);
 [X, result] = fminsearch(@monoGA_obj1, X, options);
 
 %%
-X(11) = 1243.75;
-options = optimset('MaxIter', 10000, 'Display', 'iter');
-[X, result] = fminsearch(@monoGAc_obj, X, options);
+X(11) = 1243.76;
+options = optimset('MaxIter', 10000);
+[X, result] = fminsearch(@monoGA_obj, X, options);
 fprintf("J=%f\n",result);
-
 
 %%
 tol = 1e-20;
@@ -277,7 +276,7 @@ for i=1:length(t12)
 end
 plot3(r(1,:), r(2,:), r(3,:), 'LineWidth', 1.5, 'Color', 'm', 'LineStyle','--');hold on
 plot3(r(1, end), r(2,end), r(3,end),'m*','LineWidth', 2);hold on
-text(r(1, end), r(2,end), r(3,end), 'Arrival-Pysche-Mining');
+text(r(1, end), r(2,end), r(3,end), 'Arrival-Psyche-Mining');
 
 r0 = rAt2New;
 v0 = vAt2New;
