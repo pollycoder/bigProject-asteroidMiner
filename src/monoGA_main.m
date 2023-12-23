@@ -57,8 +57,13 @@ options = optimset('MaxIter', 10000);
 [X, result] = fminsearch(@monoGA_obj1, X, options);
 
 %%
+<<<<<<< HEAD
 X(11) = 1243.76;
 options = optimset('MaxIter', 10000);
+=======
+X(11) = 1243.75;
+options = optimset('MaxIter', 10000, 'Display', 'iter');
+>>>>>>> b455099960da6b3a6a08ab1520792cf22047f612
 [X, result] = fminsearch(@monoGA_obj, X, options);
 fprintf("J=%f\n",result);
 
