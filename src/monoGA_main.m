@@ -45,26 +45,36 @@ rpMinNew = rpMin * lUnit;
 tWaitUpper = 1825 * day;
 tTotalUpper = 5475 * day;
 tWaitUpperNew = tWaitUpper * tUnit;
-lb = [0, 2, 5, 7, 9, 9, 0, 0, 0, 0, 0]';
-ub = [2, 5, 7, 9, 15, 15, 10, 10, 2 * pi, 2 * pi, 10]';
+lb = [0, 2, 5, 7, 9, 9, 0, 0, 0, 0]';
+ub = [2, 5, 7, 9, 15, 15, 10, 10, 2 * pi, 2 * pi]';
 
-%% 
-options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 'MaxIterations', 1000);
-[X, init_result, exitflag] = particleswarm(@monoGA_obj1, 11, lb, ub, options);
+%% Optimize fuel - global - PSO
+options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 'MaxIterations', 1000, 'HybridFcn', 'patternsearch');
+[X, init_result, exitflag] = particleswarm(@biGA_obj, 10, lb, ub, options);
 
-%%
+
+%% Optimize fuel - global -GA
+%{
+options = optimoptions("ga", "ConstraintTolerance", 1e-10, "CreationFcn", ...
+                       "gacreationlinearfeasible", "CrossoverFcn", "crossoverlaplace", ...
+                       "Display", "iter", "HybridFcn", "patternsearch");
+[X,fval,exitflag,output,population,result] = ga(@monoGA_obj1, 11, [], [], [], [], lb, ub, [], [], options);
+%}
+
+
+%% Optimize fuel - local
 options = optimset('MaxIter', 10000);
-[X, result] = fminsearch(@monoGA_obj1, X, options);
+[X, result] = fminsearch(@biGA_obj, X, options);
 
-%%
+%% Final optimization
+%{
 X(11) = 1243.76;
 options = optimset('MaxIter', 10000);
-
-%%
 [X, result] = fminsearch(@monoGA_obj, X, options);
+%}
 fprintf("J=%f\n",result);
 
-%%
+%% Calculate all the variables
 tol = 1e-20;
 % Initial mass
 mDry = 500;                                                 % Initial dry mass (kg)                     
@@ -130,8 +140,8 @@ mFuel = mFuel - dmt2;                                       % Fuel cost (t=t2)
 
 
 % Sampling (t2)
-mTotalt22 = mTotalt21 + X(11);                              % Add sample mass
-mDry = mDry + X(11);                                        % Sample mass is included in dry mass
+mTotalt22 = mTotalt21 + (-result);                              % Add sample mass
+mDry = mDry + (-result);                                        % Sample mass is included in dry mass
 
 % Return: A->M (t3-t4)
 tAM = X(5) - X(4);
@@ -314,3 +324,7 @@ plot3(0,0,0,'k*','LineWidth', 3);
 text(0,0,0,'Sun');
 
 axis equal
+
+%% Animation
+
+

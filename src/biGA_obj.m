@@ -12,7 +12,7 @@
 % X(11): mf
 % X: new unit
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function J = monoGA_obj(X)
+function J = biGA_obj(X)
 tol = 1e-20;
 penalty = 1e20;                        % Since the result should be negative, any positive number could be penalty
 
@@ -127,9 +127,6 @@ else
     dvt0Norm = dvt0Norm - 4;
     dvt0NormNew = dvt0Norm * vUnit;
 end
-[mTotalt0, dmt0] = impulseFuel(mTotal0, dvt0NormNew, ...
-                               IspNew, g0New);              % Mass change (t=t0)
-mFuel = mFuel - dmt0;                                       % Fuel cost (t=t0)
 
 
 % GA-1: SOI (t1)
@@ -148,20 +145,14 @@ tMA = X(3) - X(2);
 
 dvt1New = vt13New - vt12New;                                % 2nd impulse (t=t1)
 dvt1NormNew = norm(dvt1New);                                % Unit transform to fit the impulse solver
-[mTotalt1, dmt1] = impulseFuel(mTotalt0, dvt1NormNew, ...
-                               IspNew, g0New);              % Mass change (t=t1)
-mFuel = mFuel - dmt1;                                       % Fuel cost (t=t1)
 
 dvt2New = vAt2New - vt2New;                                 % 3rd impulse (t=t2)
 dvt2NormNew = norm(dvt2New);                                % Unit transform to fit the impulse solver
-[mTotalt21, dmt2] = impulseFuel(mTotalt1, dvt2NormNew, ...
-                                IspNew, g0New);             % Mass change (t=t2)
-mFuel = mFuel - dmt2;                                       % Fuel cost (t=t2)
 
+% First phase end, total mass loss during 1st phase
+dvBeforeSampNormNew = dvt0NormNew + dvt1NormNew + dvt2NormNew;
+[mTotalBeforeSamp, dmBeforeSamp] = impulseFuel(mTotal0, dvBeforeSampNormNew, IspNew, g0New);
 
-% Sampling (t2)
-mTotalt22 = mTotalt21 + X(11);                              % Add sample mass
-mDry = mDry + X(11);                                        % Sample mass is included in dry mass
 
 % Return: A->M (t3-t4)
 tAM = X(5) - X(4);
@@ -175,9 +166,6 @@ tAM = X(5) - X(4);
 
 dvt3New = vt3New - vAt3New;                                 % 4th impulse (t=t3)
 dvt3NormNew = norm(dvt3New);                                % Unit transform to fit the impulse solver
-[mTotalt3, dmt3] = impulseFuel(mTotalt22, dvt3NormNew, ...
-                               IspNew, g0New);              % Mass change (t=t3)
-mFuel = mFuel - dmt3;                                       % Fuel cost (t=t3)
 
 
 % GA-1: SOI (t1)
@@ -195,9 +183,7 @@ tME = X(6) - X(5);
 
 dvt4New = vt43New - vt42New;                                % 5th impulse (t=t4)
 dvt4NormNew = norm(dvt4New);                                % Unit transform to fit the impulse solver
-[mTotalt4, dmt4] = impulseFuel(mTotalt3, dvt4NormNew, ...
-                               IspNew, g0New);              % Mass change (t=t4)
-mFuel = mFuel - dmt4;
+
 
 dvt5New = vEt5New - vt5New;                                 % 6th impulse (t=t5)
 dvt5NormNew = norm(dvt5New);                                % Unit transform to fit the impulse solver
@@ -212,18 +198,14 @@ else
     dvt5Norm = dvt5Norm - 4;
     dvt5NormNew = dvt5Norm * vUnit;
 end
-[mTotalt5, dmt5] = impulseFuel(mTotalt4, dvt5NormNew, ...
-                               IspNew, g0New);              % Mass change (t=t5)
-mFuel = mFuel - dmt5;
 
-%
-if mFuel < 0                                                % Penalty, to stop calculation in time if condition is not satisfied
-    %warning("脉冲6,燃料耗尽。Penalty.");
-    J = penalty;                                            % J < 0, therefore penalty > 0
-    return
-end
-%}
 
-J = -X(11);
+% Total mass loss after sampling
+dvAfterSampNew = dvt3NormNew + dvt4NormNew + dvt5NormNew;
+dmAfterSamp = mFuel - dmBeforeSamp;
+[~, temp] = impulseFuel(1 / dmAfterSamp, dvAfterSampNew, IspNew, g0New);
+mSample = 1 / temp - mTotalBeforeSamp;
+
+J = -mSample;
 
 end
