@@ -45,11 +45,11 @@ rpMinNew = rpMin * lUnit;
 tWaitUpper = 1825 * day;
 tTotalUpper = 5475 * day;
 tWaitUpperNew = tWaitUpper * tUnit;
-lb = [0, 2, 5, 7, 9, 9, 0, 0, 0, 0]';
-ub = [2, 5, 7, 9, 15, 15, 10, 10, 2 * pi, 2 * pi]';
+lb = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]';
+ub = [5, 15, 15, 15, 15, 15, 10, 10, 2 * pi, 2 * pi]';
 
 %% Optimize fuel - global - PSO
-options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 'MaxIterations', 1000, 'HybridFcn', 'patternsearch');
+options = optimoptions("particleswarm", "SwarmSize", 10000, 'UseParallel', true, 'MaxIterations', 1000, 'HybridFcn', 'patternsearch', 'Display', 'iter');
 [X, init_result, exitflag] = particleswarm(@biGA_obj, 10, lb, ub, options);
 
 
@@ -57,8 +57,8 @@ options = optimoptions("particleswarm", "SwarmSize", 1000, 'UseParallel', true, 
 %{
 options = optimoptions("ga", "ConstraintTolerance", 1e-10, "CreationFcn", ...
                        "gacreationlinearfeasible", "CrossoverFcn", "crossoverlaplace", ...
-                       "Display", "iter", "HybridFcn", "patternsearch");
-[X,fval,exitflag,output,population,result] = ga(@monoGA_obj1, 11, [], [], [], [], lb, ub, [], [], options);
+                       "Display", "iter", "HybridFcn", "patternsearch", 'UseParallel', true);
+[X,fval,exitflag,output,population,result] = ga(@biGA_obj, 10, [], [], [], [], lb, ub, [], [], options);
 %}
 
 

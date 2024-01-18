@@ -149,11 +149,6 @@ dvt1NormNew = norm(dvt1New);                                % Unit transform to 
 dvt2New = vAt2New - vt2New;                                 % 3rd impulse (t=t2)
 dvt2NormNew = norm(dvt2New);                                % Unit transform to fit the impulse solver
 
-% First phase end, total mass loss during 1st phase
-dvBeforeSampNormNew = dvt0NormNew + dvt1NormNew + dvt2NormNew;
-[mTotalBeforeSamp, dmBeforeSamp] = impulseFuel(mTotal0, dvBeforeSampNormNew, IspNew, g0New);
-
-
 % Return: A->M (t3-t4)
 tAM = X(5) - X(4);
 [rAt3New, vAt3New] = rv02rvf(rA0New, vA0New, ...
@@ -199,6 +194,9 @@ else
     dvt5NormNew = dvt5Norm * vUnit;
 end
 
+% First phase end, total mass loss during 1st phase
+dvBeforeSampNormNew = dvt0NormNew + dvt1NormNew + dvt2NormNew;
+[mTotalBeforeSamp, dmBeforeSamp] = impulseFuel(mTotal0, dvBeforeSampNormNew, IspNew, g0New);
 
 % Total mass loss after sampling
 dvAfterSampNew = dvt3NormNew + dvt4NormNew + dvt5NormNew;
