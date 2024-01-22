@@ -45,8 +45,8 @@ rpMinNew = rpMin * lUnit;
 tWaitUpper = 1825 * day;
 tTotalUpper = 5475 * day;
 tWaitUpperNew = tWaitUpper * tUnit;
-lb = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]';
-ub = [5, 15, 15, 15, 15, 15, 10, 10, 2 * pi, 2 * pi]';
+lb = [1, 3, 5, 8, 11, 12, 0, 0, 0, 0]';
+ub = [2, 4, 6, 9, 12, 13, 1, 1, 2 * pi, 2 * pi]';
 
 %% Optimize fuel - global - PSO
 % options = optimoptions("particleswarm", "SwarmSize", 10000, 'UseParallel', true, 'MaxIterations', 1000, 'HybridFcn', 'patternsearch', 'Display', 'iter');
