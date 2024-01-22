@@ -49,12 +49,12 @@ lb = [1, 3, 5, 8, 11, 12, 0, 0, 0, 0]';
 ub = [2, 4, 6, 9, 12, 13, 1, 1, 2 * pi, 2 * pi]';
 
 %% Optimize fuel - global - PSO
-% options = optimoptions("particleswarm", "SwarmSize", 10000, 'UseParallel', true, 'MaxIterations', 1000, 'HybridFcn', 'patternsearch', 'Display', 'iter');
+%options = optimoptions("particleswarm", "SwarmSize", 10000, 'UseParallel', true, 'MaxIterations', 1000, 'HybridFcn', 'patternsearch', 'Display', 'iter');
 %[X, init_result, exitflag] = particleswarm(@biGA_obj, 10, lb, ub, options);
 
 
 %% Optimize fuel - global -GA
-options = optimoptions("ga", "ConstraintTolerance", 1e-10, "CreationFcn", ...0 
+options = optimoptions("ga", "ConstraintTolerance", 1e-10, "CreationFcn", ...
                        "gacreationlinearfeasible", "CrossoverFcn", "crossoverlaplace", ...
                        "Display", "iter", "HybridFcn", "patternsearch", 'UseParallel', true);
 [X,fval,exitflag,output,population,result] = ga(@biGA_obj, 10, [], [], [], [], lb, ub, [], [], options);
