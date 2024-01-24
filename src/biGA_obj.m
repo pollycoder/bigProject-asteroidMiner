@@ -129,11 +129,6 @@ else
 end
 
 
-% GA-1: SOI (t1)
-% vt11 would become the velocity for GA
-[vt12New, ~] = SOI_after(vt11New, vMt1New, muMarsNew, ...
-                         X(7), X(9));                       % SOI
-
 % Arrival: M->A (t1-t2)
 tMA = X(3) - X(2);
 [rA0New, vA0New] = coe2rv(coeAsteroid0New, muSunNew, tol);  % RV of Asteroid (t=0)
@@ -143,8 +138,13 @@ tMA = X(3) - X(2);
 [vt13New, vt2New] = LambSol(rMt1New, rAt2New, ...
                             tMA, muSunNew);                 % Lambert problem 2: M->A
 
-dvt1New = vt13New - vt12New;                                % 2nd impulse (t=t1)
-dvt1NormNew = norm(dvt1New);                                % Unit transform to fit the impulse solver
+% GA-1:SOI (t1)
+[vt121New, vt122New, ~] = SOI_opt(vt11New, vt13New, vMt1New, muMarsNew, X(7), X(9));
+
+dvt11New = vt121New - vt11New;                              % 2nd impulse 1 (t=t1) - SOI
+dvt12New = vt13New - vt122New;                              % 2nd impulse 2 (t=t1) - SOI
+dvt11NormNew = norm(dvt11New);                              % Unit transform to fit the impulse solver
+dvt12NormNew = norm(dvt12New);                              % Unit transform to fit the impulse solver
 
 dvt2New = vAt2New - vt2New;                                 % 3rd impulse (t=t2)
 dvt2NormNew = norm(dvt2New);                                % Unit transform to fit the impulse solver
@@ -163,10 +163,10 @@ dvt3New = vt3New - vAt3New;                                 % 4th impulse (t=t3)
 dvt3NormNew = norm(dvt3New);                                % Unit transform to fit the impulse solver
 
 
-% GA-1: SOI (t1)
+% GA-2: SOI (t4)
 % vt11 would become the velocity for GA
-[vt42New, ~] = SOI_after(vt41New, vMt4New, muMarsNew, ...
-                         X(8), X(10));                      % SOI
+%[vt42New, ~] = SOI_after(vt41New, vMt4New, muMarsNew, ...
+%                         X(8), X(10));                      % SOI
 
 % Return: M->E (t4-t5)
 tME = X(6) - X(5);
@@ -176,8 +176,13 @@ tME = X(6) - X(5);
 [vt43New, vt5New] = LambSol(rMt4New, rEt5New, ...
                             tME, muSunNew);                 % Lambert problem 4: M->E
 
-dvt4New = vt43New - vt42New;                                % 5th impulse (t=t4)
-dvt4NormNew = norm(dvt4New);                                % Unit transform to fit the impulse solver
+% GA-2:SOI (t4)
+[vt421New, vt422New, ~] = SOI_opt(vt41New, vt43New, vMt4New, muMarsNew, X(8), X(10));
+
+dvt41New = vt421New - vt41New;                              % 2nd impulse 1 (t=t1) - SOI
+dvt42New = vt43New - vt422New;                              % 2nd impulse 2 (t=t1) - SOI
+dvt41NormNew = norm(dvt41New);                              % Unit transform to fit the impulse solver
+dvt42NormNew = norm(dvt42New);                              % Unit transform to fit the impulse solver
 
 
 dvt5New = vEt5New - vt5New;                                 % 6th impulse (t=t5)
@@ -195,11 +200,11 @@ else
 end
 
 % First phase end, total mass loss during 1st phase
-dvBeforeSampNormNew = dvt0NormNew + dvt1NormNew + dvt2NormNew;
+dvBeforeSampNormNew = dvt0NormNew + dvt11NormNew + dvt12NormNew + dvt2NormNew;
 [mTotalBeforeSamp, dmBeforeSamp] = impulseFuel(mTotal0, dvBeforeSampNormNew, IspNew, g0New);
 
 % Total mass loss after sampling
-dvAfterSampNew = dvt3NormNew + dvt4NormNew + dvt5NormNew;
+dvAfterSampNew = dvt3NormNew + dvt41NormNew + dvt42NormNew + dvt5NormNew;
 dmAfterSamp = mFuel - dmBeforeSamp;
 [~, temp] = impulseFuel(1 / dmAfterSamp, dvAfterSampNew, IspNew, g0New);
 mSample = 1 / temp - mTotalBeforeSamp;

@@ -7,7 +7,7 @@ if nargin<4
     max_iter=100;
 end
 if nargin<3
-    tol=1E-7;
+    tol=1E-14;
 end
 steps=0;
 sol=feval(obj_fun,x0);

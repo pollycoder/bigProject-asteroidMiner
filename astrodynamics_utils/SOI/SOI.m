@@ -1,6 +1,6 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% SOI Calculation
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SOI Calculation - impulse after GA
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [v2, dvGA] = SOI(v1, vPlanet, muPlanet, rp, phi)
 vInf1 = v1 - vPlanet;                                                       % Residual velocity when getting in the SOI
 vInf = norm(vInf1);

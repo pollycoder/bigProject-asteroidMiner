@@ -49,7 +49,9 @@ lb = [1, 3, 5, 8, 11, 12, 0, 0, 0, 0]';
 ub = [2, 4, 6, 9, 12, 13, 1, 1, 2 * pi, 2 * pi]';
 
 %% Optimize fuel - global - PSO
-%options = optimoptions("particleswarm", "SwarmSize", 10000, 'UseParallel', true, 'MaxIterations', 1000, 'HybridFcn', 'patternsearch', 'Display', 'iter');
+%options = optimoptions("particleswarm", "SwarmSize", 1000, 
+%                       'UseParallel', true, 'MaxIterations', 1000, 
+%                       'HybridFcn', 'patternsearch', 'Display', 'iter');
 %[X, init_result, exitflag] = particleswarm(@biGA_obj, 10, lb, ub, options);
 
 
@@ -57,23 +59,19 @@ ub = [2, 4, 6, 9, 12, 13, 1, 1, 2 * pi, 2 * pi]';
 options = optimoptions("ga", "ConstraintTolerance", 1e-10, "CreationFcn", ...
                        "gacreationlinearfeasible", "CrossoverFcn", "crossoverlaplace", ...
                        "Display", "iter", "HybridFcn", "patternsearch", 'UseParallel', true);
-[X,fval,exitflag,output,population,result] = ga(@biGA_obj, 10, [], [], [], [], lb, ub, [], [], options);
+[X,fval,exitflag,output,population,~] = ga(@biGA_obj, 10, [], [], [], [], lb, ub, [], [], options);
 
 
 %% Optimize fuel - local
 options = optimset('MaxIter', 10000);
 [X, result] = fminsearch(@biGA_obj, X, options);
-
-%% Final optimization
-%{
-X(11) = 1243.76;
-options = optimset('MaxIter', 10000);
-[X, result] = fminsearch(@monoGA_obj, X, options);
-%}
 fprintf("J=%f\n",result);
+
 
 %% Calculate all the variables
 tol = 1e-20;
+penalty = 1e20;                        % Since the result should be negative, any positive number could be penalty
+
 % Initial mass
 mDry = 500;                                                 % Initial dry mass (kg)                     
 mFuel = 500;                                                % Initial fuel mass (kg)
@@ -101,19 +99,11 @@ if dvt0Norm < 4
     dvt0NormNew = 0;
 else
     dvt0Vector = dvt0New / dvt0NormNew;
-    dvt0New = dvt0New - 4 * dvt0Vector * vUnit;
+    dvt0New = dvt0New - 4 * dvt0Vector;
     dvt0Norm = dvt0Norm - 4;
     dvt0NormNew = dvt0Norm * vUnit;
 end
-[mTotalt0, dmt0] = impulseFuel(mTotal0, dvt0NormNew, ...
-                               IspNew, g0New);              % Mass change (t=t0)
-mFuel = mFuel - dmt0;                                       % Fuel cost (t=t0)
 
-
-% GA-1: SOI (t1)
-% vt11 would become the velocity for GA
-[vt12New, dvt1GANew] = SOI_after(vt11New, vMt1New, muMarsNew, ...
-                         X(7), X(9));                       % SOI
 
 % Arrival: M->A (t1-t2)
 tMA = X(3) - X(2);
@@ -124,22 +114,16 @@ tMA = X(3) - X(2);
 [vt13New, vt2New] = LambSol(rMt1New, rAt2New, ...
                             tMA, muSunNew);                 % Lambert problem 2: M->A
 
-dvt1New = vt13New - vt12New;                                % 2nd impulse (t=t1)
-dvt1NormNew = norm(dvt1New);                                % Unit transform to fit the impulse solver
-[mTotalt1, dmt1] = impulseFuel(mTotalt0, dvt1NormNew, ...
-                               IspNew, g0New);              % Mass change (t=t1)
-mFuel = mFuel - dmt1;                                       % Fuel cost (t=t1)
+% GA-1:SOI (t1)
+[vt121New, vt122New, dvGAt1New] = SOI_opt(vt11New, vt13New, vMt1New, muMarsNew, X(7), X(9));
+
+dvt11New = vt121New - vt11New;                              % 2nd impulse 1 (t=t1) - SOI
+dvt12New = vt13New - vt122New;                              % 2nd impulse 2 (t=t1) - SOI
+dvt11NormNew = norm(dvt11New);                              % Unit transform to fit the impulse solver
+dvt12NormNew = norm(dvt12New);                              % Unit transform to fit the impulse solver
 
 dvt2New = vAt2New - vt2New;                                 % 3rd impulse (t=t2)
 dvt2NormNew = norm(dvt2New);                                % Unit transform to fit the impulse solver
-[mTotalt21, dmt2] = impulseFuel(mTotalt1, dvt2NormNew, ...
-                                IspNew, g0New);             % Mass change (t=t2)
-mFuel = mFuel - dmt2;                                       % Fuel cost (t=t2)
-
-
-% Sampling (t2)
-mTotalt22 = mTotalt21 + (-result);                              % Add sample mass
-mDry = mDry + (-result);                                        % Sample mass is included in dry mass
 
 % Return: A->M (t3-t4)
 tAM = X(5) - X(4);
@@ -153,15 +137,6 @@ tAM = X(5) - X(4);
 
 dvt3New = vt3New - vAt3New;                                 % 4th impulse (t=t3)
 dvt3NormNew = norm(dvt3New);                                % Unit transform to fit the impulse solver
-[mTotalt3, dmt3] = impulseFuel(mTotalt22, dvt3NormNew, ...
-                               IspNew, g0New);              % Mass change (t=t3)
-mFuel = mFuel - dmt3;                                       % Fuel cost (t=t3)
-
-
-% GA-1: SOI (t4)
-% vt11 would become the velocity for GA
-[vt42New, dvt4GANew] = SOI_after(vt41New, vMt4New, muMarsNew, ...
-                         X(8), X(10));                      % SOI
 
 % Return: M->E (t4-t5)
 tME = X(6) - X(5);
@@ -171,11 +146,14 @@ tME = X(6) - X(5);
 [vt43New, vt5New] = LambSol(rMt4New, rEt5New, ...
                             tME, muSunNew);                 % Lambert problem 4: M->E
 
-dvt4New = vt43New - vt42New;                                % 5th impulse (t=t4)
-dvt4NormNew = norm(dvt4New);                                % Unit transform to fit the impulse solver
-[mTotalt4, dmt4] = impulseFuel(mTotalt3, dvt4NormNew, ...
-                               IspNew, g0New);              % Mass change (t=t4)
-mFuel = mFuel - dmt4;
+% GA-2:SOI (t4)
+[vt421New, vt422New, dvGAt4New] = SOI_opt(vt41New, vt43New, vMt4New, muMarsNew, X(8), X(10));
+
+dvt41New = vt421New - vt41New;                              % 2nd impulse 1 (t=t1) - SOI
+dvt42New = vt43New - vt422New;                              % 2nd impulse 2 (t=t1) - SOI
+dvt41NormNew = norm(dvt41New);                              % Unit transform to fit the impulse solver
+dvt42NormNew = norm(dvt42New);                              % Unit transform to fit the impulse solver
+
 
 dvt5New = vEt5New - vt5New;                                 % 6th impulse (t=t5)
 dvt5NormNew = norm(dvt5New);                                % Unit transform to fit the impulse solver
@@ -190,19 +168,20 @@ else
     dvt5Norm = dvt5Norm - 4;
     dvt5NormNew = dvt5Norm * vUnit;
 end
-[mTotalt5, dmt5] = impulseFuel(mTotalt4, dvt5NormNew, ...
-                               IspNew, g0New);              % Mass change (t=t5)
-mFuel = mFuel - dmt5;
 
+% Impulses
 dvt0 = dvt0New / vUnit;
-dvt1 = dvt1New / vUnit;
+dvt11 = dvt11New / vUnit;
+dvt12 = dvt12New / vUnit;
 dvt2 = dvt2New / vUnit;
 dvt3 = dvt3New / vUnit;
-dvt4 = dvt4New / vUnit;
+dvt41 = dvt41New / vUnit;
+dvt42 = dvt42New / vUnit;
 dvt5 = dvt5New / vUnit;
-dvt1GA = dvt1GANew / vUnit;
-dvt4GA = dvt4GANew / vUnit;
+dvt1GA = dvGAt1New / vUnit;
+dvt4GA = dvGAt4New / vUnit;
 
+% Velocity
 vA0 = vA0New / vUnit;
 vAt2 = vAt2New / vUnit;
 vAt3 = vAt3New / vUnit;
@@ -212,15 +191,22 @@ vMt1 = vMt1New / vUnit;
 vMt4 = vMt4New / vUnit;
 vt0 = vt0New / vUnit;
 vt11 = vt11New / vUnit;
-vt12 = vt12New / vUnit;
+vt121 = vt121New / vUnit;
+vt122 = vt122New / vUnit;
 vt13 = vt13New / vUnit;
 vt2 = vt2New / vUnit;
 vt3 = vt3New / vUnit;
 vt41 = vt41New / vUnit;
-vt42 = vt42New / vUnit;
+vt421 = vt421New / vUnit;
+vt422 = vt422New / vUnit;
 vt43 = vt43New / vUnit;
 vt5 = vt5New / vUnit;
 
+% Rendezvous velocity - real
+dvt0Real = vt0 - vEt0;
+dvt5Real = vEt5 - vt5;
+
+% Position
 rA0 = rA0New / lUnit;
 rAt2 = rAt2New / lUnit;
 rAt3 = rAt3New / lUnit;
@@ -231,98 +217,96 @@ rM0 = rM0New / lUnit;
 rMt1 = rMt1New / lUnit;
 rMt4 = rMt4New / lUnit;
 
+% Parameters
 X_int = X;
 X_int(1:6) = X(1:6) / tUnit / day;
 X_int(9) = mod(X_int(9), 2 * pi);
 X_int(10) = mod(X_int(10), 2 * pi);
 
-dvt0Real = vt0 - vEt0;
-dvt5Real = vEt5 - vt5;
+% Mass
+mSample = 1299.6120747;
+[mTotalt0, dmt0] = impulseFuel(mTotal0, dvt0NormNew, IspNew, g0New);
+[mTotalt11, dmt11] = impulseFuel(mTotalt0, dvt11NormNew, IspNew, g0New);
+[mTotalt12, dmt12] = impulseFuel(mTotalt11, dvt12NormNew, IspNew, g0New);
+[mTotalt21, dmt21] = impulseFuel(mTotalt12, dvt2NormNew, IspNew, g0New);
+mTotalt22 = mTotalt21 + mSample;
+[mTotalt3, dmt3] = impulseFuel(mTotalt22, dvt3NormNew, IspNew, g0New);
+[mTotalt41, dmt41] = impulseFuel(mTotalt3, dvt41NormNew, IspNew, g0New);
+[mTotalt42, dmt42] = impulseFuel(mTotalt41, dvt42NormNew, IspNew, g0New);
+[mTotalt5, dmt5] = impulseFuel(mTotalt42, dvt5NormNew, IspNew, g0New);
+
+mFuel_left = mFuel - dmt0- dmt11 - dmt12 - dmt21 - dmt3 - dmt41 - dmt42 - dmt5;
 
 
 %% Plot
-% Earth, Mars, Asteroid
-n=100;
-f = linspace(0, 2 * pi, n);
-for i = 1:length(f)
-    coeENew = coeEarth0New;
-    coeENew(6) = f(i);
-    rE(:, i) = coe2rv(coeENew, muSunNew, tol);
-end
-for i = 1:length(f)
-    coeMNew = coeMars0New;
-    coeMNew(6) = f(i);
-    rM(:, i) = coe2rv(coeMNew, muSunNew, tol);
-end
-for i = 1:length(f)
-    coeANew = coeAsteroid0New;
-    coeANew(6) = f(i);
-    rA(:, i) = coe2rv(coeANew, muSunNew, tol);
-end
-plot3(rE(1,:), rE(2,:), rE(3,:), 'LineWidth', 1.5, 'Color', 'k');hold on
-plot3(rM(1,:), rM(2,:), rM(3,:), 'LineWidth', 1.5, 'Color', 'k');hold on
-plot3(rA(1,:), rA(2,:), rA(3,:), 'LineWidth', 1.5, 'Color', 'k');hold on
-
-
-% Trajectory
-r0 = rEt0New;
-v0 = vt0New;
-n1=1000;
-t01 = linspace(0, X(2) - X(1), n1);
-for i=1:length(t01)
-    [r(:, i), ~] = rv02rvf(r0, v0, t01(i), muSunNew);
-end
-plot3(r(1,:), r(2,:), r(3,:), 'LineWidth', 1.5, 'Color', 'r', 'LineStyle','--');hold on
-plot3(r(1,1), r(2,1), r(3,1),'g*','LineWidth', 2);hold on
-plot3(r(1, end), r(2,end), r(3,end),'b*','LineWidth', 2);hold on
-text(r(1,1), r(2,1), r(3,1), 'Departure');
-text(r(1, end), r(2,end), r(3,end), 'GA-Mars-1');
-
-r0 = rMt1New;
-v0 = vt13New;
-t12 = linspace(0, X(3) - X(2), n1);
-for i=1:length(t12)
-    [r(:, i), ~] = rv02rvf(r0, v0, t12(i), muSunNew);
-end
-plot3(r(1,:), r(2,:), r(3,:), 'LineWidth', 1.5, 'Color', 'm', 'LineStyle','--');hold on
-plot3(r(1, end), r(2,end), r(3,end),'m*','LineWidth', 2);hold on
-text(r(1, end), r(2,end), r(3,end), 'Arrival-Psyche-Mining');
-
-r0 = rAt2New;
-v0 = vAt2New;
-t23 = linspace(0, X(4)- X(3), n1);
-for i=1:length(t12)
-    [r(:, i), ~] = rv02rvf(r0, v0, t23(i), muSunNew);
-end
-plot3(r(1,:), r(2,:), r(3,:), 'LineWidth', 1.5, 'Color', 'g', 'LineStyle','--');hold on
-plot3(r(1, end), r(2,end), r(3,end),'g*','LineWidth', 2);hold on
-text(r(1, end), r(2,end), r(3,end), 'Return-Psyche');
-
-r0 = rAt3New;
-v0 = vt3New;
-t34 = linspace(0, X(5)- X(4), n1);
-for i=1:length(t12)
-    [r(:, i), ~] = rv02rvf(r0, v0, t34(i), muSunNew);
-end
-plot3(r(1,:), r(2,:), r(3,:), 'LineWidth', 1.5, 'Color', 'c', 'LineStyle','--');hold on
-plot3(r(1, end), r(2,end), r(3,end),'b*','LineWidth', 2);hold on
-text(r(1, end), r(2,end), r(3,end),'GA-Mars-2');
-
-r0 = rMt4New;
-v0 = vt43New;
-t45 = linspace(0, X(6)- X(5), n1);
-for i=1:length(t12)
-    [r(:, i), ~] = rv02rvf(r0, v0, t45(i), muSunNew);
-end
-plot3(r(1,:), r(2,:), r(3,:), 'LineWidth', 1.5, 'Color', 'b', 'LineStyle','--');hold on
-plot3(r(1, end), r(2,end), r(3,end),'r*','LineWidth', 2);hold on 
-text(r(1, end), r(2,end), r(3,end),'Arrival-Earth');
-
+% Earth, Mars, Asteroid, Sun
+plotOrbit(coeEarth0New, muSunNew);
+plotOrbit(coeMars0New, muSunNew);
+plotOrbit(coeAsteroid0New, muSunNew);
 plot3(0,0,0,'k*','LineWidth', 3);
 text(0,0,0,'Sun');
 
+% Trajectory 1
+r0 = rEt0New;
+v0 = vt0New;
+t01 = X(2) - X(1);
+style.LineWidth = 1.5;
+style.LineColor = 'r';
+style.LineStyle = '--';
+style.pointStyle = 'b*';
+style.pointText = 'GA-Mars-1';
+plotTrajectory(r0, v0, t01, muSunNew, style);
+plot3(r0(1), r0(2), r0(3), 'g*', 'LineWidth', 2);
+text(r0(1), r0(2), r0(3), 'Departure');
+
+% Trajectory 2
+r0 = rMt1New;
+v0 = vt13New;
+t12 = X(3) - X(2);
+style.LineWidth = 1.5;
+style.LineColor = 'm';
+style.LineStyle = '--';
+style.pointStyle = 'm*';
+style.pointText = 'Arrival-Psyche-Mining';
+plotTrajectory(r0, v0, t12, muSunNew, style);
+
+% Trajectory 3
+r0 = rAt2New;
+v0 = vAt2New;
+t23 = X(4)- X(3);
+style.LineWidth = 1.5;
+style.LineColor = 'g';
+style.LineStyle = '--';
+style.pointStyle = 'g*';
+style.pointText = 'Return-Psyche';
+plotTrajectory(r0, v0, t23, muSunNew, style);
+
+% Trajectory 4
+r0 = rAt3New;
+v0 = vt3New;
+t34 = X(5)- X(4);
+style.LineWidth = 1.5;
+style.LineColor = 'c';
+style.LineStyle = '--';
+style.pointStyle = 'b*';
+style.pointText = 'GA-Mars-2';
+plotTrajectory(r0, v0, t34, muSunNew, style);
+
+% Trajectory 5
+r0 = rMt4New;
+v0 = vt43New;
+t45 = X(6)- X(5);
+style.LineWidth = 1.5;
+style.LineColor = 'b';
+style.LineStyle = '--';
+style.pointStyle = 'r*';
+style.pointText = 'Arrival-Earth';
+plotTrajectory(r0, v0, t45, muSunNew, style);
+
 axis equal
 
-%% Animation
-
-
+title("Optimized Trajectory for Psyche Mining");
+legend('Earth Orbit', 'Mars Orbit', 'Psyche Orbit', '', ...
+       'Earth-->Mars Trajectory', '', '', ...
+       'Mars-->Psyche Trajectory', '', 'Psyche Transfer', '', ...
+       'Psyche-->Mars Trajectory', '', 'Mars-->Earth Trajectory', '');
