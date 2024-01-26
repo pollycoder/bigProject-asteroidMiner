@@ -13,6 +13,7 @@ coeEarth0 = [1.495484423703440e+08, 0.0163866660358080, 5.40080930104537e-05, 3.
 coeMars0 = [2.279254603773820e+08, 0.0934491898618057, 0.0322523881233316, 0.863747331544666, 5.00261081874214, 1.94894057775148];
 muMars = 4.282837521400000e+04;
 muSun = 1.327124400180000e+11;
+muEarth = 398600;
 day = 86400;
 g0 = 9.806650000000000e-3;
 Isp = 3000;
@@ -33,6 +34,7 @@ coeUnit = [lUnit, ones(1, 5)];                              % Change the unit of
 % New unit - They will be set as global constant
 muSunNew = muSun * muUnit;
 muMarsNew = muMars * muUnit;
+muEarthNew = muEarth * muUnit;
 g0New = g0 * aUnit;
 IspNew = Isp * tUnit;
 
@@ -45,28 +47,28 @@ rpMinNew = rpMin * lUnit;
 tWaitUpper = 1825 * day;
 tTotalUpper = 5475 * day;
 tWaitUpperNew = tWaitUpper * tUnit;
-lb = [1, 3, 5, 8, 11, 12, 0, 0, 0, 0]';
-ub = [2, 4, 6, 9, 12, 13, 1, 1, 2 * pi, 2 * pi]';
-%lb = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]';
-%ub = [5, 15, 15, 15, 15, 15, 1, 1, 2 * pi, 2 * pi]';
+%lb = [1, 3, 5, 8, 11, 12, 0, 0, 0, 0]';
+%ub = [2, 4, 6, 9, 12, 13, 1, 1, 2 * pi, 2 * pi]';
+lb = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]';
+ub = [5, 15, 15, 15, 15, 15, 1, 1, 2 * pi, 2 * pi]';
 
 %% Optimize fuel - global - PSO
 %options = optimoptions("particleswarm", "SwarmSize", 1000, ...
 %                       'UseParallel', true, 'MaxIterations', 1000, ...
 %                       'HybridFcn', 'patternsearch', 'Display', 'iter');
-%[X, init_result, exitflag] = particleswarm(@biGA_obj, 10, lb, ub, options);
+%[X, init_result, exitflag] = particleswarm(@biGAEarth_obj, 10, lb, ub, options);
 
 
 %% Optimize fuel - global -GA
 options = optimoptions("ga", "ConstraintTolerance", 1e-10, "CreationFcn", ...
                        "gacreationlinearfeasible", "CrossoverFcn", "crossoverlaplace", ...
                        "Display", "iter", "HybridFcn", "patternsearch", 'UseParallel', true);
-[X,fval,exitflag,output,population,~] = ga(@biGA_obj, 10, [], [], [], [], lb, ub, [], [], options);
+[X,fval,exitflag,output,population,~] = ga(@biGAEarth_obj, 10, [], [], [], [], lb, ub, [], [], options);
 
 
 %% Optimize fuel - local
 options = optimset('MaxIter', 10000);
-[X, result] = fminsearch(@biGA_obj, X, options);
+[X, result] = fminsearch(@biGAEarth_obj, X, options);
 fprintf("J=%f\n",result);
 
 
@@ -79,17 +81,17 @@ mDry = 500;                                                 % Initial dry mass (
 mFuel = 500;                                                % Initial fuel mass (kg)
 mTotal0 = mDry + mFuel;                                     % Initial total mass (kg)
 
-% Departure: E -> M (t0-t1)
+% Departure: E -> E (t0-t1)
 tEMNew = X(2) - X(1);                                       % Transfer time
 [rE0New, vE0New] = coe2rv(coeEarth0New, muSunNew, tol);     % RV of Earth (t=0)
 [rM0New, vM0New] = coe2rv(coeMars0New, muSunNew, tol);      % RV of Mars (t=0)
 
 [rEt0New, vEt0New] = rv02rvf(rE0New, vE0New, ...
                              X(1), muSunNew);               % RV of Earth (t=t0)
-[rMt1New, vMt1New] = rv02rvf(rM0New, vM0New, ...
+[rEt1New, vEt1New] = rv02rvf(rE0New, vE0New, ...
                              X(2), muSunNew);               % RV of Mars (t=t1)
 
-[vt0New, vt11New] = LambSol(rEt0New, rMt1New, ...
+[vt0New, vt11New] = LambSol(rEt0New, rEt1New, ...
                             tEMNew, muSunNew);              % Lambert problem 1: E->M
 
 dvt0New = vt0New - vEt0New;                                 % 1st impulse (t=t0)
@@ -107,17 +109,17 @@ else
 end
 
 
-% Arrival: M->A (t1-t2)
+% Arrival: E->A (t1-t2)
 tMA = X(3) - X(2);
 [rA0New, vA0New] = coe2rv(coeAsteroid0New, muSunNew, tol);  % RV of Asteroid (t=0)
 [rAt2New, vAt2New] = rv02rvf(rA0New, vA0New, ...
                              X(3), muSunNew);               % RV of Asteroid (t=t2)
 
-[vt13New, vt2New] = LambSol(rMt1New, rAt2New, ...
+[vt13New, vt2New] = LambSol(rEt1New, rAt2New, ...
                             tMA, muSunNew);                 % Lambert problem 2: M->A
 
 % GA-1:SOI (t1)
-[vt121New, vt122New, dvGAt1New] = SOI_opt(vt11New, vt13New, vMt1New, muMarsNew, X(7), X(9));
+[vt121New, vt122New, dvGAt1New] = SOI_opt(vt11New, vt13New, vEt1New, muEarthNew, X(7), X(9));
 
 dvt11New = vt121New - vt11New;                              % 2nd impulse 1 (t=t1) - SOI
 dvt12New = vt13New - vt122New;                              % 2nd impulse 2 (t=t1) - SOI
@@ -131,10 +133,10 @@ dvt2NormNew = norm(dvt2New);                                % Unit transform to 
 tAM = X(5) - X(4);
 [rAt3New, vAt3New] = rv02rvf(rA0New, vA0New, ...
                              X(4), muSunNew);               % RV of Asteroid (t=t3)
-[rMt4New, vMt4New] = rv02rvf(rM0New, vM0New, ...
+[rEt4New, vEt4New] = rv02rvf(rE0New, vE0New, ...
                              X(5), muSunNew);               % RV of Mars (t=t4)
 
-[vt3New, vt41New] = LambSol(rAt3New, rMt4New, ...
+[vt3New, vt41New] = LambSol(rAt3New, rEt4New, ...
                             tAM, muSunNew);                 % Lambert problem 3: A->M
 
 dvt3New = vt3New - vAt3New;                                 % 4th impulse (t=t3)
@@ -149,7 +151,7 @@ tME = X(6) - X(5);
                             tME, muSunNew);                 % Lambert problem 4: M->E
 
 % GA-2:SOI (t4)
-[vt421New, vt422New, dvGAt4New] = SOI_opt(vt41New, vt43New, vMt4New, muMarsNew, X(8), X(10));
+[vt421New, vt422New, dvGAt4New] = SOI_opt(vt41New, vt43New, vEt4New, muEarthNew, X(8), X(10));
 
 dvt41New = vt421New - vt41New;                              % 2nd impulse 1 (t=t1) - SOI
 dvt42New = vt43New - vt422New;                              % 2nd impulse 2 (t=t1) - SOI
@@ -189,7 +191,7 @@ vAt2 = vAt2New / vUnit;
 vAt3 = vAt3New / vUnit;
 vEt0 = vEt0New / vUnit;
 vEt5 = vEt5New / vUnit;
-vMt1 = vMt1New / vUnit;
+vEt1 = vEt1New / vUnit;
 vMt4 = vMt4New / vUnit;
 vt0 = vt0New / vUnit;
 vt11 = vt11New / vUnit;
@@ -216,13 +218,12 @@ rE0 = rE0New / lUnit;
 rEt0 = rEt0New / lUnit;
 rEt5 = rEt5New / lUnit;
 rM0 = rM0New / lUnit;
-rMt1 = rMt1New / lUnit;
-rMt4 = rMt4New / lUnit;
+rEt1 = rEt1New / lUnit;
+rEt4 = rEt4New / lUnit;
 
 % Parameters
 X_int = X;
 X_int(1:6) = X(1:6) / tUnit / day;
-X_int(7:8) = X(7:8) / lUnit;
 X_int(9) = mod(X_int(9), 2 * pi);
 X_int(10) = mod(X_int(10), 2 * pi);
 
@@ -263,7 +264,7 @@ plot3(r0(1), r0(2), r0(3), 'g*', 'LineWidth', 2);
 text(r0(1), r0(2), r0(3), 'Departure');
 
 % Trajectory 2
-r0 = rMt1New;
+r0 = rEt1New;
 v0 = vt13New;
 t12 = X(3) - X(2);
 style.LineWidth = 1.5;
@@ -296,7 +297,7 @@ style.pointText = 'GA-Mars-2';
 plotTrajectory(r0, v0, t34, muSunNew, style);
 
 % Trajectory 5
-r0 = rMt4New;
+r0 = rEt4New;
 v0 = vt43New;
 t45 = X(6)- X(5);
 style.LineWidth = 1.5;

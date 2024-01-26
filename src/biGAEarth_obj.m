@@ -12,7 +12,7 @@
 % X(11): mf
 % X: new unit
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function J = biGA_obj(X)
+function J = biGAEarth_obj(X)
 tol = 1e-20;
 penalty = 1e20;                        % Since the result should be negative, any positive number could be penalty
 
@@ -58,6 +58,7 @@ coeMars0 = [2.279254603773820e+08, ...
             1.94894057775148];
 muMars = 4.282837521400000e+04;
 muSun = 1.327124400180000e+11;
+muEarth = 398600;
 Isp = 3000;
 g0 = 9.806650000000000e-3;
 RMars = 3.389920000000000e+03;
@@ -78,6 +79,7 @@ coeUnit = [lUnit, ones(1, 5)];                              % Change the unit of
 % New unit - They will be set as global constant
 muSunNew = muSun * muUnit;
 muMarsNew = muMars * muUnit;
+muEarthNew = muEarth * muUnit;
 IspNew = Isp * tUnit;
 g0New = g0 * aUnit;
 
@@ -106,10 +108,10 @@ tEMNew = X(2) - X(1);                                       % Transfer time
 
 [rEt0New, vEt0New] = rv02rvf(rE0New, vE0New, ...
                              X(1), muSunNew);               % RV of Earth (t=t0)
-[rMt1New, vMt1New] = rv02rvf(rM0New, vM0New, ...
+[rEt1New, vEt1New] = rv02rvf(rE0New, vE0New, ...
                              X(2), muSunNew);               % RV of Mars (t=t1)
 
-[vt0New, vt11New] = LambSol(rEt0New, rMt1New, ...
+[vt0New, vt11New] = LambSol(rEt0New, rEt1New, ...
                             tEMNew, muSunNew);              % Lambert problem 1: E->M
 
 dvt0New = vt0New - vEt0New;                                 % 1st impulse (t=t0)
@@ -133,11 +135,11 @@ tMA = X(3) - X(2);
 [rAt2New, vAt2New] = rv02rvf(rA0New, vA0New, ...
                              X(3), muSunNew);               % RV of Asteroid (t=t2)
 
-[vt13New, vt2New] = LambSol(rMt1New, rAt2New, ...
+[vt13New, vt2New] = LambSol(rEt1New, rAt2New, ...
                             tMA, muSunNew);                 % Lambert problem 2: M->A
 
 % GA-1:SOI (t1)
-[vt121New, vt122New, ~] = SOI_opt(vt11New, vt13New, vMt1New, muMarsNew, X(7), X(9));
+[vt121New, vt122New, ~] = SOI_opt(vt11New, vt13New, vEt1New, muEarthNew, X(7), X(9));
 
 dvt11New = vt121New - vt11New;                              % 2nd impulse 1 (t=t1) - SOI
 dvt12New = vt13New - vt122New;                              % 2nd impulse 2 (t=t1) - SOI
@@ -151,10 +153,10 @@ dvt2NormNew = norm(dvt2New);                                % Unit transform to 
 tAM = X(5) - X(4);
 [rAt3New, vAt3New] = rv02rvf(rA0New, vA0New, ...
                              X(4), muSunNew);               % RV of Asteroid (t=t3)
-[rMt4New, vMt4New] = rv02rvf(rM0New, vM0New, ...
+[rEt4New, vEt4New] = rv02rvf(rE0New, vE0New, ...
                              X(5), muSunNew);               % RV of Mars (t=t4)
 
-[vt3New, vt41New] = LambSol(rAt3New, rMt4New, ...
+[vt3New, vt41New] = LambSol(rAt3New, rEt4New, ...
                             tAM, muSunNew);                 % Lambert problem 3: A->M
 
 dvt3New = vt3New - vAt3New;                                 % 4th impulse (t=t3)
@@ -171,11 +173,11 @@ tME = X(6) - X(5);
 [rEt5New, vEt5New] = rv02rvf(rE0New, vE0New, ...
                              X(6), muSunNew);               % RV of Earth (t=t5)
 
-[vt43New, vt5New] = LambSol(rMt4New, rEt5New, ...
+[vt43New, vt5New] = LambSol(rEt4New, rEt5New, ...
                             tME, muSunNew);                 % Lambert problem 4: M->E
 
 % GA-2:SOI (t4)
-[vt421New, vt422New, ~] = SOI_opt(vt41New, vt43New, vMt4New, muMarsNew, X(8), X(10));
+[vt421New, vt422New, ~] = SOI_opt(vt41New, vt43New, vEt4New, muEarthNew, X(8), X(10));
 
 dvt41New = vt421New - vt41New;                              % 2nd impulse 1 (t=t1) - SOI
 dvt42New = vt43New - vt422New;                              % 2nd impulse 2 (t=t1) - SOI

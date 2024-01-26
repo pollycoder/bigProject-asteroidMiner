@@ -2,7 +2,7 @@
 % SOI: Two impulses
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [vMid1, vMid2, dvGA] = SOI_opt(v1, v2, vPlanet, muPlanet, rp, phi)
-vMid0 = v1;                                                                 % Use v1 as initial value
+vMid0 = [1; 1; 1];                                                                 % Use v1 as initial value
 obj_func = @(vMid)SOI_impulse(vMid, v1, v2, vPlanet, muPlanet, rp, phi);
 options = optimoptions("fminunc", "Display", "off");
 [vMid1, ~] = fminunc(obj_func, vMid0, options);
