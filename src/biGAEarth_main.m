@@ -49,8 +49,8 @@ tTotalUpper = 5475 * day;
 tWaitUpperNew = tWaitUpper * tUnit;
 %lb = [1, 3, 5, 8, 11, 12, 0, 0, 0, 0]';
 %ub = [2, 4, 6, 9, 12, 13, 1, 1, 2 * pi, 2 * pi]';
-lb = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]';
-ub = [5, 15, 15, 15, 15, 15, 1, 1, 2 * pi, 2 * pi]';
+lb = [0, 2, 3, 5, 9, 12, 0, 0, 0, 0]';
+ub = [2, 4, 6, 9, 12, 15, 1, 1, 2 * pi, 2 * pi]';
 
 %% Optimize fuel - global - PSO
 %options = optimoptions("particleswarm", "SwarmSize", 1000, ...
@@ -133,10 +133,10 @@ dvt2NormNew = norm(dvt2New);                                % Unit transform to 
 tAM = X(5) - X(4);
 [rAt3New, vAt3New] = rv02rvf(rA0New, vA0New, ...
                              X(4), muSunNew);               % RV of Asteroid (t=t3)
-[rEt4New, vEt4New] = rv02rvf(rE0New, vE0New, ...
+[rMt4New, vMt4New] = rv02rvf(rM0New, vM0New, ...
                              X(5), muSunNew);               % RV of Mars (t=t4)
 
-[vt3New, vt41New] = LambSol(rAt3New, rEt4New, ...
+[vt3New, vt41New] = LambSol(rAt3New, rMt4New, ...
                             tAM, muSunNew);                 % Lambert problem 3: A->M
 
 dvt3New = vt3New - vAt3New;                                 % 4th impulse (t=t3)
@@ -151,7 +151,7 @@ tME = X(6) - X(5);
                             tME, muSunNew);                 % Lambert problem 4: M->E
 
 % GA-2:SOI (t4)
-[vt421New, vt422New, dvGAt4New] = SOI_opt(vt41New, vt43New, vEt4New, muEarthNew, X(8), X(10));
+[vt421New, vt422New, dvGAt4New] = SOI_opt(vt41New, vt43New, vMt4New, muMarsNew, X(8), X(10));
 
 dvt41New = vt421New - vt41New;                              % 2nd impulse 1 (t=t1) - SOI
 dvt42New = vt43New - vt422New;                              % 2nd impulse 2 (t=t1) - SOI
@@ -219,7 +219,7 @@ rEt0 = rEt0New / lUnit;
 rEt5 = rEt5New / lUnit;
 rM0 = rM0New / lUnit;
 rEt1 = rEt1New / lUnit;
-rEt4 = rEt4New / lUnit;
+rMt4 = rMt4New / lUnit;
 
 % Parameters
 X_int = X;
@@ -258,7 +258,7 @@ style.LineWidth = 1.5;
 style.LineColor = 'r';
 style.LineStyle = '--';
 style.pointStyle = 'b*';
-style.pointText = 'GA-Mars-1';
+style.pointText = 'GA-Earth-1';
 plotTrajectory(r0, v0, t01, muSunNew, style);
 plot3(r0(1), r0(2), r0(3), 'g*', 'LineWidth', 2);
 text(r0(1), r0(2), r0(3), 'Departure');
@@ -297,7 +297,7 @@ style.pointText = 'GA-Mars-2';
 plotTrajectory(r0, v0, t34, muSunNew, style);
 
 % Trajectory 5
-r0 = rEt4New;
+r0 = rMt4New;
 v0 = vt43New;
 t45 = X(6)- X(5);
 style.LineWidth = 1.5;
